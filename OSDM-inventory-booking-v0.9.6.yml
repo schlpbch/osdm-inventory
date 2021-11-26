@@ -1108,7 +1108,8 @@ components:
     ##
 
     Passenger:
-      description: Passenger with the relevant information only to be contacted in case if a disruption.
+      description: >-
+        Passenger with the relevant information only to be contacted in case if a disruption.
       type: object
       properties:
         externalRef:
@@ -1125,13 +1126,13 @@ components:
           format: date
         eMail:
           type: string
-          example: p.schweizer@bluewin.ch
+          example: p.schweizer@demo.ch
         phone:
           type: string
           example: 078 434 4434
 
     PlaceProperty:
-      description:
+      description: >-
         Define a property of a place. For a given service level a set of properties are valid.
 
         See UIC 918.1, Tarif Code (42), type of coach (37-1) and Compartment with Special Features (37-2).
@@ -1181,7 +1182,7 @@ components:
       properties:
         serviceLevel:
           $ref: "#/components/schemas/ServiceLevel"
-        availableZones:
+        availableAccommodationSubTypes:
           type: array
           items:
             $ref: "#/components/schemas/AccommodationSubTypeAvailability"
@@ -1201,8 +1202,10 @@ components:
 
     AccommodationSubType:
       type: string
-      description: 
-        see https://unioninternationalcheminsdefer.github.io/OSDM/spec/catalog-of-code-lists/
+      description:
+        The accommodation subtype refers to reservable zones within a vehicle.
+
+        See https://unioninternationalcheminsdefer.github.io/OSDM/spec/catalog-of-code-lists/
       x-extensible-enum:
         - BICYCLE
         - BUSINESS

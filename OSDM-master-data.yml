@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
-  title: Nova Master Data API
-  version: 0.9.6
+  title: NOVA Master Data API
+  version: 1.0.0-rc1
   description: >-
     NOVA Master Data API to access inventory information.
   contact:

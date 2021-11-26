@@ -317,10 +317,9 @@ components:
           type: integer
           format: int32
           example: 565
-        # Operator ref in OJP notation?
         operatorRef:
           type: string
-          example: "uic:ddd:11"
+          example: urn:sbb:85:11
 
     InventoryItemTemporalValidity:
       description: Defines a validity range for a given item.

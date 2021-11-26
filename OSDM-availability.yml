@@ -20,49 +20,6 @@ tags:
   - name: Booking
     description: booking resource
 paths:
-  /availabilities:
-    post:
-      tags:
-        - Availability
-      summary: returns availability of a vehicle
-      description: >-
-        Returns availability. The availability can be filtered using place properties or service level.
-      operationId: getAvailability
-      requestBody:
-        description: request for availability
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AvailabilityRequest"
-      responses:
-        "200":
-          description: the requested place
-          headers:
-            Cache-Control:
-              schema:
-                type: string
-                default: "public, max-age=10000"
-                description: >-
-                  A places resource is fairly persistent and has a medium time to live to allow short-term caching.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AvailabilityResponse"
-        "400":
-          description: bad input parameter
-        "401":
-          description: unauthorized
-        "403":
-          description: forbidden
-        "404":
-          description: no place information found
-        "500":
-          description: internal server error
-        "501":
-          description: not implemented
-        "503":
-          description: service unavailable
-
   /bookings:
     post:
       tags:
@@ -535,6 +492,8 @@ components:
     SelectionPerLeg:
       type: object
       properties:
+        legId:
+          type: string
         seqId:
           type: number
           format: int32    

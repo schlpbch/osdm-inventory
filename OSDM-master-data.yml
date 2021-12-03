@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: NOVA Master Data API
-  version: 1.0.0-rc1
+  version: 1.0.0-rc2
   description: >-
     NOVA Master Data API to access inventory information.
   contact:
@@ -366,14 +366,24 @@ components:
         id:
           description: unique id of this product on this server.
           type: string
+        abstract:
+          type: string
+          example: TGV Lyria Loisir 2
         familyName:
           description: >-
             The name of the family the product belongs to.
             E.g. all "Produktausprägungen" can be part of the same family.
           type: string
-        abstract:
+        type:
+          description: >-
+            Coarse grained categorization of the product type. Used to determine the type of an
+            Offer (see "OfferPartType").
           type: string
-          example: TGV Lyria Loisir 2
+          enum:
+            - ADMISSION
+            - RESERVATION
+            - ANCILLARY
+            - FEE
         code:
           type: string
           description: >-
@@ -587,12 +597,13 @@ components:
 
     ComfortClass:
       description: >-
-        Generic class classification, mostly used to harmonize choice and
-        representation across multiple carriers.
+        Generic class classification, representing the classic distinction into FIRST and SECOND class.
+        Mostly used to harmonize choice and representation across multiple carriers.
       type: string
       x-extensible-enum:
         - FIRST
         - SECOND
+
     Flexibility:
       type: string
       x-extensible-enum:

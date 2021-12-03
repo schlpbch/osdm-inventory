@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
-  title: Nova Inventory Booking API
-  version: 1.0.0-rc1
+  title: NOVA Inventory Booking API
+  version: 1.0.0-rc2
   description: >-
     NOVA Inventory API to book places in a inventory
   contact:
@@ -288,8 +288,16 @@ components:
     AvailabilityResponse:
       type: object
       properties:
-        id:
-          type: string
+        availabilities:
+          type: array
+          items:
+            $ref: "#/components/schemas/TripAvailability"
+
+    TripAvailability:
+      type: object
+      description: >-
+        Availability per leg for 
+      properties:
         tripId:
           type: string
         availabilityPerLeg:
@@ -298,8 +306,13 @@ components:
             $ref: "#/components/schemas/TripLegAvailability"
 
     TripLegAvailability:
+      type: object
+      description:
+        Availability per leg for a given trip.
       properties:
         legId:
+          type: string
+        seqId:
           type: number
           format: int32
         availableServices:

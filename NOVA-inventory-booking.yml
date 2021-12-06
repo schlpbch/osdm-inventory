@@ -315,6 +315,8 @@ components:
         seqId:
           type: number
           format: int32
+        accommodationType:
+          $ref: "#/components/schemas/AccommodationType"
         availableServices:
           type: array
           items:
@@ -1213,6 +1215,20 @@ components:
           items:
             $ref: "#/components/schemas/PlaceProperty"
 
+    AccommodationType:
+      type: string
+      description: >-
+        Accommodation type definition out of the Accommodation Type Code List
+
+        See https://unioninternationalcheminsdefer.github.io/OSDM/spec/catalog-of-code-lists/        
+      x-extenssible-enum:
+        - SEAT
+        - COUCHETTE
+        - BERTH
+        - VEHICLE
+      default:
+        SEAT
+
     AccommodationSubType:
       type: string
       description:
@@ -1222,10 +1238,14 @@ components:
       x-extensible-enum:
         - BICYCLE
         - BUSINESS
-        - FAMILY
-        - SILENCE
+        - EXCELLENCE #No
+        - FAMILY  #No
         - PRAM
         - PRAM_WITH_SEAT
+        - RESTAURANT
+        - SILENCE
         - WHEELCHAIR
-        - WHEELCHAIR_WS
+      example:
+        SILENCE
+
     ##

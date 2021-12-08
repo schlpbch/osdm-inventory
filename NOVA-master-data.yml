@@ -353,6 +353,8 @@ components:
         - validities
         - id
         - abstract
+        - type
+        - familyName
         - code
         - descriptions
         - conditions
@@ -400,9 +402,20 @@ components:
             $ref: "#/components/schemas/Condition"
           description: >-
             Structured description of the sales or after-sales conditions.
-        serviceClass:
+        validAccommodationSubType:
+          description: >-
+            Defines whether the product is valid for specific accommodation sub types only. If omitted
+            no restriction applies.
+          $ref: "#/components/schemas/AccommodationSubType"
+        validServiceClass:
+          description: >-
+            Defines whether the product is valid for a specific service classes. If omitted No
+            restriction applies.
           $ref: "#/components/schemas/ServiceClass"
-        comfortClass:
+        validComfortClass:
+          description: >-
+            Defines whether the product is valid for a specific comfort classes. If omitted No
+            restriction applies.
           $ref: "#/components/schemas/ComfortClass"
         isTrainBound:
           type: boolean
@@ -573,6 +586,27 @@ components:
         - NATIONAL
         - SHORT_DISTANCE
         - LONG_DISTANCE
+
+    AccommodationSubType:
+      type: string
+      description:
+        The accommodation subtype refers to reservable zones within a vehicle.
+
+        See https://unioninternationalcheminsdefer.github.io/OSDM/spec/catalog-of-code-lists/
+      x-extensible-enum:
+        - BICYCLE
+        - BISTRO
+        - BUSINESS
+        - EXCELLENCE
+        - FAMILY
+        - FRONT_VIEW    
+        - PRAM
+        - PRAM_WITH_SEAT
+        - RESTAURANT
+        - SILENCE
+        - WHEELCHAIR
+      example:
+        SILENCE
 
     ServiceClass:
       type: object

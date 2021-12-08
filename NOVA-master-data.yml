@@ -358,7 +358,7 @@ components:
         - code
         - descriptions
         - conditions
-        - validComfortClass
+        - comfortClass
         - fulfillmentOptions
       properties:
         validities:
@@ -407,8 +407,7 @@ components:
             Structured description of the sales or after-sales conditions.
         accommodationType:
           description: Accommodation type according to UIC
-          type: string
-          default: SEAT
+          $ref: "#/components/schemas/AccommodationType"
         accommodationSubType:
           description: >-
             Defines whether the product is valid for specific accommodation sub types only. 
@@ -593,10 +592,22 @@ components:
         - NATIONAL
         - SHORT_DISTANCE
         - LONG_DISTANCE
+    
+    AccommodationType:
+      type: string
+      description: >-
+        The accommodation type refers to the type of a vehicle.    
+      x-extensible-enum:
+        - SEAT
+        - COUCHETTE
+        - BERTH
+        - VEHICLE
+      default:
+        SEAT
 
     AccommodationSubType:
       type: string
-      description:
+      description: >-
         The accommodation sub type refers to reservable zones within a vehicle.
       x-extensible-enum:
         - BICYCLE

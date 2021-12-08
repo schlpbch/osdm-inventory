@@ -1229,10 +1229,8 @@ components:
     AccommodationType:
       type: string
       description: >-
-        Accommodation type definition out of the Accommodation Type Code List
-
-        See https://unioninternationalcheminsdefer.github.io/OSDM/spec/catalog-of-code-lists/        
-      x-extenssible-enum:
+        The accommodation type refers to the type of a vehicle.    
+      x-extensible-enum:
         - SEAT
         - COUCHETTE
         - BERTH
@@ -1242,23 +1240,26 @@ components:
 
     AccommodationSubType:
       type: string
-      description:
-        The accommodation subtype refers to reservable zones within a vehicle.
-
-        See https://unioninternationalcheminsdefer.github.io/OSDM/spec/catalog-of-code-lists/
+      description: >-
+        The accommodation sub type refers to reservable zones within a vehicle.
       x-extensible-enum:
         - BICYCLE
         - BISTRO
         - BUSINESS
+        - COMPARTEMENT
         - EXCELLENCE
         - FAMILY
-        - FRONT_VIEW    
+        - FRONT_VIEW
+        - HISTORIC_TRAIN
+        - OPEN_SPACE
+        - PANORAMA
         - PRAM
         - PRAM_WITH_SEAT
         - RESTAURANT
         - SILENCE
         - WHEELCHAIR
+        - WHEELCHAIR_WITH_SEAT
       example:
-        SILENCE
+        OPEN_SPACE
 
     ##

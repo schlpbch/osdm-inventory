@@ -78,7 +78,7 @@ paths:
         "503":
           $ref: "#/components/responses/ServiceUnavailableResponse"
 
-  /inventory/products:
+  /inventory/productDefinitions:
     get:
       summary: returns a list of products hosted in the inventory
       operationId: getProducts
@@ -123,7 +123,7 @@ paths:
                   products:
                     type: array
                     items:
-                      "$ref": "#/components/schemas/Product"
+                      "$ref": "#/components/schemas/ProductDefinition"
         "400":
           $ref: "#/components/responses/BadRequestResponse"
         "401":
@@ -345,7 +345,7 @@ components:
       example: 125
 
     # Length of all strings should be define as we want / need to store them in a database.
-    Product:
+    ProductDefinition:
       type: object
       description: >-
         Structured description of the product, its name, comfort and sales / after-sales conditions
@@ -354,10 +354,11 @@ components:
         - id
         - abstract
         - type
-        - familyName
+        - family
         - code
         - descriptions
         - conditions
+        - validComfortClass
         - fulfillmentOptions
       properties:
         validities:
@@ -369,9 +370,11 @@ components:
           description: unique id of this product on this server.
           type: string
         abstract:
+          description: >-
+            Internal product description.
           type: string
           example: TGV Lyria Loisir 2
-        familyName:
+        family:
           description: >-
             The name of the family the product belongs to.
             E.g. all "Produktausprägungen" can be part of the same family.
@@ -402,20 +405,22 @@ components:
             $ref: "#/components/schemas/Condition"
           description: >-
             Structured description of the sales or after-sales conditions.
-        validAccommodationSubType:
+        accommodationType:
+          description: Accommodation type according to UIC
+          type: string
+          default: SEAT
+        accommodationSubType:
           description: >-
-            Defines whether the product is valid for specific accommodation sub types only. If omitted
-            no restriction applies.
+            Defines whether the product is valid for specific accommodation sub types only. 
+            Mandatory in case for reservation products.
           $ref: "#/components/schemas/AccommodationSubType"
-        validServiceClass:
+        serviceClass:
           description: >-
-            Defines whether the product is valid for a specific service classes. If omitted No
-            restriction applies.
+            Defines whether the product is valid for a specific service classes.
           $ref: "#/components/schemas/ServiceClass"
-        validComfortClass:
+        comfortClass:
           description: >-
-            Defines whether the product is valid for a specific comfort classes. If omitted No
-            restriction applies.
+            Defines whether the product is valid for a specific comfort classes.
           $ref: "#/components/schemas/ComfortClass"
         isTrainBound:
           type: boolean
@@ -476,6 +481,8 @@ components:
 
     FulfillmentOption:
       type: object
+      required:
+        - type
       description: >-
         CIT paper implies printing on value paper which is stock controlled.
       properties:
@@ -590,23 +597,26 @@ components:
     AccommodationSubType:
       type: string
       description:
-        The accommodation subtype refers to reservable zones within a vehicle.
-
-        See https://unioninternationalcheminsdefer.github.io/OSDM/spec/catalog-of-code-lists/
+        The accommodation sub type refers to reservable zones within a vehicle.
       x-extensible-enum:
         - BICYCLE
         - BISTRO
         - BUSINESS
+        - COMPARTEMENT
         - EXCELLENCE
         - FAMILY
-        - FRONT_VIEW    
+        - FRONT_VIEW
+        - HISTORIC_TRAIN
+        - OPEN_SPACE
+        - PANORAMA
         - PRAM
         - PRAM_WITH_SEAT
         - RESTAURANT
         - SILENCE
         - WHEELCHAIR
+        - WHEELCHAIR_WITH_SEAT
       example:
-        SILENCE
+        OPEN_SPACE
 
     ServiceClass:
       type: object

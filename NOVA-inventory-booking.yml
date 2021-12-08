@@ -267,19 +267,26 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Trip"
+        requestedAccommodationSubType:
+          description: >-
+            Optional array of requested accommodation sub type such as EXPERIENCE.
+            If omitted no filtering on accommodation sub types is performed.
+          type: array
+          items:
+            $ref: "#/components/schemas/AccommodationSubType"
+        requestedComfortClass:
+          description:
+            Optional array comfort classes to filter (FIRST_CLASS or SECOND_CLASS).
+            If omitted no filtering 
+          type: array
+          items:
+            $ref: "#/components/schemas/ComfortClass"
         requestedPlaceProperties:
           description: >-
             Optional array of requested place properties such as WINDOW, TABLE,...
           type: array
           items:
             $ref: "#/components/schemas/PlaceProperty"
-        requestedServiceLevels:
-          description: >-
-            Optional array of requested service level such as FIRST_CLASS_SEAT reservation.
-            If the array is empty no filtering on service levels is performed.
-          type: array
-          items:
-            $ref: "#/components/schemas/ServiceLevel"
         passengers:
           type: array
           items:
@@ -317,7 +324,7 @@ components:
           format: int32
         accommodationType:
           $ref: "#/components/schemas/AccommodationType"
-        availableServices:
+        services:
           type: array
           items:
             $ref: "#/components/schemas/ServiceAvailability"
@@ -1146,6 +1153,19 @@ components:
           type: string
           example: 078 434 4434
 
+    ##
+
+    ComfortClass:
+      description: >-
+        Generic class classification, representing the classic distinction into FIRST and SECOND class.
+        Mostly used to harmonize choice and representation across multiple carriers.
+      type: string
+      x-extensible-enum:
+        - FIRST
+        - SECOND
+      example:
+        FIRST
+
     PlaceProperty:
       description: >-
         Define a property of a place. For a given service level a set of properties are valid.
@@ -1183,21 +1203,12 @@ components:
         - PANORAMA
         - FRONT_VIEW
 
-    ServiceLevel:
-      description: Defines a service level. See UIC 918-1, Service Level. p. 157
-      type: string
-      x-extensible-enum:
-        - FIRST_CLASS_SEAT
-        - SECOND_CLASS_SEAT
-        - BIKE
-        - RESTAURANT
-
     ServiceAvailability:
       type: object
       properties:
-        serviceLevel:
-          $ref: "#/components/schemas/ServiceLevel"
-        availableAccommodationSubTypes:
+        comfortClass:
+          $ref: "#/components/schemas/ComfortClass"
+        accommodationSubTypes:
           type: array
           items:
             $ref: "#/components/schemas/AccommodationSubTypeAvailability"
@@ -1237,9 +1248,11 @@ components:
         See https://unioninternationalcheminsdefer.github.io/OSDM/spec/catalog-of-code-lists/
       x-extensible-enum:
         - BICYCLE
+        - BISTRO
         - BUSINESS
-        - EXCELLENCE #No
-        - FAMILY  #No
+        - EXCELLENCE
+        - FAMILY
+        - FRONT_VIEW    
         - PRAM
         - PRAM_WITH_SEAT
         - RESTAURANT

@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: NOVA Inventory Booking API
-  version: 1.0.0-rc2
+  version: 1.0.0-rc3
   description: >-
     NOVA Inventory API to book places in a inventory
   contact:
@@ -22,7 +22,7 @@ paths:
         Returns availability. The availability can be filtered using place properties or service levels.
       operationId: getAvailabilities
       parameters:
-        - $ref: "#/components/parameters/accessToken"
+        - $ref: "#/components/parameters/authorization"
         - $ref: "#/components/parameters/traceParent"
         - $ref: "#/components/parameters/traceState"
       requestBody:
@@ -62,8 +62,8 @@ paths:
 
 components:
   parameters:
-    accessToken:
-      name: Access-Token
+    authorization:
+      name: Authorization
       in: header
       description: >-
         OAuth2 token used to authenticate the consumer API. Refer to the implementation documentation

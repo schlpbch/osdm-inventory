@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: NOVA Master Data API
-  version: 1.0.0-rc2
+  version: 1.0.0-rc3
   description: >-
     NOVA Master Data API to access inventory information.
   contact:
@@ -22,7 +22,7 @@ paths:
       tags:
         - master data
       parameters:
-        - $ref: "#/components/parameters/accessToken"
+        - $ref: "#/components/parameters/authorization"
         - $ref: "#/components/parameters/traceParent"
         - $ref: "#/components/parameters/traceState"
         - name: operatorRef
@@ -85,7 +85,7 @@ paths:
       tags:
         - master data
       parameters:
-        - $ref: "#/components/parameters/accessToken"
+        - $ref: "#/components/parameters/authorization"
         - $ref: "#/components/parameters/traceParent"
         - $ref: "#/components/parameters/traceState"
         - name: operatorRef
@@ -141,8 +141,8 @@ paths:
 
 components:
   parameters:
-    accessToken:
-      name: Access-Token
+    authorization:
+      name: Authorization
       in: header
       description: >-
         OAuth2 token used to authenticate the consumer API. Refer to the implementation documentation
@@ -358,7 +358,6 @@ components:
         - code
         - descriptions
         - conditions
-        - comfortClass
         - fulfillmentOptions
       properties:
         validities:
@@ -431,52 +430,6 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/FulfillmentOption"
-        includedProducts:
-          description: >-
-            A set of products that are included with this product. The set can be empty.
-          type: array
-          items:
-            $ref: "#/components/schemas/ProductCode"
-        mandatoryProductsToBeValid:
-          description: >-
-            A set of products that need to be booked in order for the booking to be valid.
-            E.g., a excellence class reservation needs an admission (e.g. 125) to be valid. 
-            The set can be empty.
-          type: array
-          items:
-            $ref: "#/components/schemas/ProductCode"
-        serviceConstraintText:
-          type: string
-        carrierConstraintText:
-          type: string
-        throughTicketTags:
-          type: array
-          items:
-            type: string
-          description: >-
-            List of tags (and their type) that allow identifying sets of offers for which related contracts can be grouped into one through ticket
-        combinationTags:
-          description: >-
-            Tags to indicate that some products from a provider can be sold only when in conjunction with product(s) 
-            from another provider using the same tag. At least one, not all, combinationTags must be in common to allow 
-            combination. No combinationTags indicate that there are no combination constraints on the product.
-          type: array
-          items:
-            type: object
-            properties:
-              combinationTag:
-                type: string
-              needsToBeCombined:
-                description: >-
-                  If false it means that this product can only be sold also when not in conjunction with a product with
-                  the same tag. This is needed to propose specific products from one provider that depend on public ones of 
-                  another.
-                type: boolean
-                default: false
-        links:
-          type: array
-          items:
-            $ref: "#/components/schemas/Link"
 
     FulfillmentOption:
       type: object
@@ -685,42 +638,6 @@ components:
         - PDF_A4
         - PKPASS
         - TICKETLESS
-
-    Link:
-      type: object
-      description: >-
-        The underlying system may provide additional links pointing on further
-        information (such as HTML download links, web sites or extended APIs).
-        Mechanism to add flexible extensions specific to an underlying system.
-      properties:
-        contentTypes:
-          type: array
-          example: '["application/json", "application/pdf"]'
-          description: Possible content types of the resource.
-          items:
-            type: string
-        href:
-          type: string
-          format: uri
-          description: URL to the linked resource (no parameters needed).
-          example: "https://www.brussels.info/train-stations/"
-        type:
-          type: string
-          example: GET
-          description: HTTP method to call the action
-        rel:
-          type: string
-          example: Get Map
-          description: Relation of this link to the current entity.
-        version:
-          type: integer
-          format: int32
-          example: 1
-          description: Version of the current relation.
-      required:
-        - contentTypes
-        - href
-        - rel
 
     Translation:
       type: object

@@ -339,11 +339,6 @@ components:
 
     ## start of products
 
-    ProductCode:
-      description: the product code.
-      type: string
-      example: 125
-
     # Length of all strings should be define as we want / need to store them in a database.
     ProductDefinition:
       type: object
@@ -611,13 +606,6 @@ components:
       x-extensible-enum:
         - FIRST
         - SECOND
-
-    Flexibility:
-      type: string
-      x-extensible-enum:
-        - FULLFLEX
-        - SEMIFLEX
-        - NONFLEX
 
     FulfillmentType:
       type: string

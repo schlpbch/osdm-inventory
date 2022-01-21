@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: NOVA Inventory Booking API
-  version: 1.0.0-rc3
+  version: 1.0.0-rc4
   description: >-
     NOVA Inventory API to book places in a inventory
   contact:
@@ -1167,8 +1167,6 @@ components:
     ServiceAvailability:
       type: object
       properties:
-        comfortClass:
-          $ref: "#/components/schemas/ComfortClass"
         accommodationSubTypes:
           type: array
           items:
@@ -1177,15 +1175,26 @@ components:
     AccommodationSubTypeAvailability:
       type: object
       properties:
+        accommodationOfferId:
+          type: string
+          example: "offerid-1"
+        comfortClass:
+          $ref: "#/components/schemas/ComfortClass"
         accommodationSubType:
           $ref: "#/components/schemas/AccommodationSubType"
         numericAvailability:
           type: number
           format: int32
+          example: 22
         placeProperties:
           type: array
           items:
             $ref: "#/components/schemas/PlaceProperty"
+        passengerReferences:
+          type: array
+          items:
+            type: string
+            example: "passenger-1"
 
     AccommodationType:
       type: string

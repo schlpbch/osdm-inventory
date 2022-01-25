@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: NOVA Inventory Booking API
-  version: 1.0.0-rc4
+  version: 1.0.0-rc5
   description: >-
     NOVA Inventory API to book places in a inventory
   contact:
@@ -282,7 +282,7 @@ components:
         requestedComfortClass:
           description:
             Optional array comfort classes to filter (FIRST_CLASS or SECOND_CLASS).
-            If omitted no filtering 
+            If omitted no filtering
           type: array
           items:
             $ref: "#/components/schemas/ComfortClass"
@@ -299,6 +299,8 @@ components:
 
     AvailabilityResponse:
       type: object
+      required:
+        - availabilities
       properties:
         availabilities:
           type: array
@@ -308,7 +310,10 @@ components:
     TripAvailability:
       type: object
       description: >-
-        Availability per leg for 
+        Availability per leg for a given trip.
+      required:
+        - tripId
+        - availabilityPerLeg
       properties:
         tripId:
           type: string
@@ -319,23 +324,24 @@ components:
 
     TripLegAvailability:
       type: object
-      description:
-        Availability per leg for a given trip.
+      description: Availability per leg for a given trip.
+      required:
+        - legId
+        - seqId
+        - services
       properties:
         legId:
           type: string
         seqId:
           type: number
           format: int32
-        accommodationType:
-          $ref: "#/components/schemas/AccommodationType"
         services:
           type: array
           items:
             $ref: "#/components/schemas/ServiceAvailability"
 
     ##
-    
+
     Trip: ## OJP # Reduced scope
       type: object
       description: >-
@@ -1124,8 +1130,7 @@ components:
       x-extensible-enum:
         - FIRST
         - SECOND
-      example:
-        FIRST
+      example: FIRST
 
     PlaceProperty:
       description: >-
@@ -1166,6 +1171,8 @@ components:
 
     ServiceAvailability:
       type: object
+      required:
+        - accommodationSubType
       properties:
         accommodationSubTypes:
           type: array
@@ -1174,12 +1181,20 @@ components:
 
     AccommodationSubTypeAvailability:
       type: object
+      required:
+        - accommodationOfferId
+        - comfortClass
+        - passengerReferences
+        - accommodationType
+        - accommodationSubType
       properties:
         accommodationOfferId:
           type: string
           example: "offerid-1"
         comfortClass:
           $ref: "#/components/schemas/ComfortClass"
+        accommodationType:
+          $ref: "#/components/schemas/AccommodationType"
         accommodationSubType:
           $ref: "#/components/schemas/AccommodationSubType"
         numericAvailability:
@@ -1199,14 +1214,13 @@ components:
     AccommodationType:
       type: string
       description: >-
-        The accommodation type refers to the type of a vehicle.    
+        The accommodation type refers to the type of a vehicle.
       x-extensible-enum:
         - SEAT
         - COUCHETTE
         - BERTH
         - VEHICLE
-      default:
-        SEAT
+      default: SEAT
 
     AccommodationSubType:
       type: string
@@ -1229,7 +1243,6 @@ components:
         - SILENCE
         - WHEELCHAIR
         - WHEELCHAIR_WITH_SEAT
-      example:
-        OPEN_SPACE
+      example: OPEN_SPACE
 
     ##

@@ -67,7 +67,7 @@ paths:
 
 ## Assumption: no scopes are used within this API
 security:
-  - oAuthNoScope: []
+  - oAuthNoScopes: []
 
 components:
   securitySchemes:
@@ -278,9 +278,9 @@ components:
     AvailabilityResponse:
       type: object
       required:
-        - availabilities
+        - tripAvailabilities
       properties:
-        availabilities:
+        tripAvailabilities:
           type: array
           items:
             $ref: "#/components/schemas/TripAvailability"
@@ -291,11 +291,11 @@ components:
         Availability per leg for a given trip.
       required:
         - tripId
-        - availabilityPerLeg
+        - legAvailabilities
       properties:
         tripId:
           type: string
-        availabilityPerLeg:
+        legAvailabilities:
           type: array
           items:
             $ref: "#/components/schemas/TripLegAvailability"

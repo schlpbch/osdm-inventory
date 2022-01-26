@@ -22,7 +22,6 @@ paths:
       tags:
         - master data
       parameters:
-        - $ref: "#/components/parameters/authorization"
         - $ref: "#/components/parameters/traceParent"
         - $ref: "#/components/parameters/traceState"
         - name: operatorRef
@@ -85,7 +84,6 @@ paths:
       tags:
         - master data
       parameters:
-        - $ref: "#/components/parameters/authorization"
         - $ref: "#/components/parameters/traceParent"
         - $ref: "#/components/parameters/traceState"
         - name: operatorRef
@@ -140,17 +138,17 @@ paths:
           $ref: "#/components/responses/ServiceUnavailableResponse"
 
 components:
-  parameters:
-    authorization:
-      name: Authorization
-      in: header
-      description: >-
-        OAuth2 token used to authenticate the consumer API. Refer to the implementation documentation
-        for information on how to get a token.
-      schema:
-        type: string
-      required: true
+  securitySchemes:
+    oAuth2ClientCredentials:
+      type: oauth2
+      description: See https://swagger.io/docs/specification/authentication/oauth2/
+      flows:
+        clientCredentials:
+          # The token endpoint of the authorization server, needs to be specified here
+          tokenUrl: "https://login.microsoftonline.com/tbd" 
+          scopes: {} # The scopes are not being used yet
 
+  parameters:
     acceptLanguage:
       name: Accept-Language
       in: header

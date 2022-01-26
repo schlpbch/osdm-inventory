@@ -65,6 +65,9 @@ paths:
         "503":
           $ref: "#/components/responses/ServiceUnavailableResponse"
 
+security:
+  - oAuth2ClientCredentials: []
+
 components:
   securitySchemes:
     oAuth2ClientCredentials:
@@ -73,20 +76,10 @@ components:
       flows:
         clientCredentials:
           # The token endpoint of the authorization server, needs to be specified here
-          tokenUrl: "https://login.microsoftonline.com/tbd" 
+          tokenUrl: "https://login.microsoftonline.com/tbd"
           scopes: {} # The scopes are not being used yet
-            
-  parameters:
-    # authorization:
-    #   name: Authorization
-    #   in: header
-    #   description: >-
-    #     OAuth2 token used to authenticate the consumer API. Refer to the implementation documentation
-    #     for information on how to get a token.
-    #   schema:
-    #     type: string
-    #   required: true
 
+  parameters:
     acceptLanguage:
       name: Accept-Language
       in: header
@@ -233,7 +226,6 @@ components:
           format: uri
           description: >-
             An absolute URI that identifies the specific occurrence of the problem.
-
 
     ## end of product schema
 

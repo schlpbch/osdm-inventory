@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: NOVA Master Data API
-  version: 1.0.0-rc3
+  version: 1.0.0-rc4
   description: >-
     NOVA Master Data API to access inventory information.
   contact:
@@ -137,6 +137,9 @@ paths:
         "503":
           $ref: "#/components/responses/ServiceUnavailableResponse"
 
+security:
+  - oAuth2ClientCredentials: []
+
 components:
   securitySchemes:
     oAuth2ClientCredentials:
@@ -145,7 +148,7 @@ components:
       flows:
         clientCredentials:
           # The token endpoint of the authorization server, needs to be specified here
-          tokenUrl: "https://login.microsoftonline.com/tbd" 
+          tokenUrl: "https://login.microsoftonline.com/tbd"
           scopes: {} # The scopes are not being used yet
 
   parameters:
@@ -538,18 +541,17 @@ components:
         - NATIONAL
         - SHORT_DISTANCE
         - LONG_DISTANCE
-    
+
     AccommodationType:
       type: string
       description: >-
-        The accommodation type refers to the type of a vehicle.    
+        The accommodation type refers to the type of a vehicle.
       x-extensible-enum:
         - SEAT
         - COUCHETTE
         - BERTH
         - VEHICLE
-      default:
-        SEAT
+      default: SEAT
 
     AccommodationSubType:
       type: string
@@ -572,8 +574,7 @@ components:
         - SILENCE
         - WHEELCHAIR
         - WHEELCHAIR_WITH_SEAT
-      example:
-        OPEN_SPACE
+      example: OPEN_SPACE
 
     ServiceClass:
       type: object

@@ -12,6 +12,10 @@ tags:
   - name: availabilities
     description: >-
       availability of vehicle
+  - name: bookings
+    description: >-
+      bookings of vehicle
+
 paths:
   /availabilities:
     post:
@@ -64,6 +68,124 @@ paths:
           description: not implemented
         "503":
           $ref: "#/components/responses/ServiceUnavailableResponse"
+
+  /bookings:
+    post:
+      tags:
+        - bookings
+      summary: returns reservation of a vehicle in the state pre-booked
+      description: >-
+        Returns a booking in state pre-booked.
+      operationId: postBooking
+      requestBody:
+        description: request for booking
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookingRequest"
+      responses:
+        "200":
+          description: the requested place
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                default: "public, max-age=10000"
+                description: >-
+                  A booking resource is fairly persistent and has a medium time to live to allow short-term caching.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingResponse"
+        "400":
+          description: bad input parameter
+        "401":
+          description: unauthorized
+        "403":
+          description: forbidden
+        "404":
+          description: no place information found
+        "500":
+          description: internal server error
+        "501":
+          description: not implemented
+        "503":
+          description: service unavailable
+    patch:
+      tags:
+        - bookings
+      summary: confirms a booking of a vehicle
+      description: >-
+        Returns a booking in state CONFIRMED
+      operationId: patchBooking
+      requestBody:
+        description: request to confirm a booking
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookingPatchRequest"
+      responses:
+        "200":
+          description: booking confirmed
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                default: "public, max-age=10000"
+                description: >-
+                  A booking resource is fairly persistent and has a medium time to live to allow short-term caching.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingPatchResponse"
+        "400":
+          description: bad input parameter
+        "401":
+          description: unauthorized
+        "403":
+          description: forbidden
+        "404":
+          description: no place information found
+        "500":
+          description: internal server error
+        "501":
+          description: not implemented
+        "503":
+          description: service unavailable
+
+  /bookings/{bookingId}:
+    delete:
+      tags:
+        - bookings
+      summary: cancel a booking of a vehicle
+      description: >-
+        Cancels a booking.
+      operationId: deleteBooking
+      parameters:
+        - in: path
+          name: bookingId
+          schema:
+            type: string
+            description: unique and opaque ID of the booking
+          required: true
+          description: ID of the booking to cancel.
+      responses:
+        "200":
+          description: booking confirmed
+        "400":
+          description: bad input parameter
+        "401":
+          description: unauthorized
+        "403":
+          description: forbidden
+        "404":
+          description: no place information found
+        "500":
+          description: internal server error
+        "501":
+          description: not implemented
+        "503":
+          description: service unavailable
 
 security:
   - oAuth2ClientCredentials: []
@@ -239,16 +361,16 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/TripSpecification"
-        requestedAccommodationSubType:
+        requestedAccommodationSubTypes:
           description: >-
             Optional array of requested accommodation sub type such as EXPERIENCE.
             If omitted no filtering on accommodation sub types is performed.
           type: array
           items:
             $ref: "#/components/schemas/AccommodationSubType"
-        requestedComfortClass:
+        requestedComfortClasses:
           description:
-            Optional array comfort classes to filter (FIRST_CLASS or SECOND_CLASS).
+            Optional array of comfort classes to filter (FIRST_CLASS or SECOND_CLASS).
             If omitted no filtering
           type: array
           items:
@@ -446,7 +568,7 @@ components:
             Reference to transport operator.
             For UIC see: https://unioninternationalcheminsdefer.github.io/OSDM/spec/catalog-of-code-lists/
           type: string
-          example: "urn:uic:rics:11:321"
+          example: urn:uic:rics:1080:321
 
     StopPlace: ## OJP # Reduced scope
       type: object
@@ -498,6 +620,111 @@ components:
         phone:
           type: string
           example: 078 434 4434
+
+    Booker:
+      type: object
+      description: >-
+        Booker information needed at offering step.
+      properties:
+        id:
+          type: string
+        externalReference:
+          description: >-
+            A stable reference to a booker from other elements, or from caller system.
+            When received in input of a trip-offers-collection request, it must be echoed back in the
+            response.
+          type: string
+        details:
+          $ref: "#/components/schemas/PersonDetail"
+
+    PersonDetail:
+      type: object
+      description: >-
+        Personal information potentially needed at booking step. The main purpose is
+        being able to inform the customer of delays or disruptions.
+        PersonDetails providing personal information only information required in the booking.
+        It is not allowed to send personal information not required in the booking reply.
+        It is not allowed to send these personal data already in the booking request.
+      properties:
+        preferredLanguage:
+          type: string
+          description: Languages spoken by the traveler (ISO Language code)
+        abstract:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        eMail:
+          type: string
+        phoneNumber:
+          description: Preferably a mobile phone number
+          type: string
+        address:
+          description: address of the traveller. Can be relevant for some pass holders
+          $ref: "#/components/schemas/Address"
+
+    Address: ## OJP # Reduced scope
+      description: >-
+        A descriptive data associated with a place that can be used to describe the unique geographical context of a
+        place for the purposes of identifying it. may be refined as either a road address, a postal address or both.
+        Provided by OJP.
+      # allOf:
+      type: object
+      required:
+        # - addressCode
+        - addressName
+      properties:
+        addressCode:
+          description: ID of this address.
+          type: string
+          example: NL:1916200000022621
+        # privateCode:  # Out of scope
+        #   description: Code of this address in private/foreign/proprietary coding schemes.
+        #   $ref: "#/components/schemas/PrivateCode"
+        addressName:
+          description: Name or description of address for use in passenger information.
+          type: string
+          example: Oude Trambaan 7, 2265CA Leidschendam, Nederland
+        # nameSuffix:  # Out of scope
+        #   description: House number of the address. If none is given, either a crossing street can be given, or the whole street is meant.
+        #   type: string
+        # - $ref: "#/components/schemas/AddressDetail"
+        countryName:
+          description: Country of the address.
+          type: string
+          example: The Netherlands
+        countryCode:
+          description: ISO country code (2 alpha), relative URNs with base urn:iso:std:iso:3166 are recommended
+          type: string
+          example: DE
+        postCode:
+          description: Postal code of the address.
+          type: string
+          example: 2265CA
+        city: # EXT
+          description: City name
+          type: string
+          example: Leidschendam
+        topographicPlaceName:
+          description: >-
+            TopographicPlace name of the address. If set it should at least contain the city name.
+          type: string
+          example: Leidschendam
+        # topographicPlaceRef:  # Out of scope
+        #   description: If at least one is set, only place objects within the given localities are allowed.If at least one is set, only place objects within the given localities are allowed.Reference to a TopographicPlace
+        #   $ref: "#/components/schemas/TopographicPlaceRef"
+        street:
+          description: Street name of the address.
+          type: string
+          example: Oude Trambaan
+        houseNumber:
+          description: House number of the address. If none is given, either a crossing street can be given, or the whole street is meant.
+          type: string
+          example: 7
+        # crossRoad:  # Out of scope
+        #   description: Crossing. This can be used to be more specific without using house numbers.
+        #   type: string
 
     ##
 
@@ -624,4 +851,307 @@ components:
         - WHEELCHAIR_WITH_SEAT
       example: OPEN_SPACE
 
+    ## Booking
+    BookingRequest:
+      type: object
+      description: >-
+        place selection options and selected options in an offer
+        - selected place properties (selectedOption)
+        - reference place for adjacent reservation (selectedReferencePlace)
+        - selected places from a graphical place selection (selectedCoaches)
+      required:
+        - booker
+        - selectionPerLegs
+      properties:
+        booker:
+          $ref: "#/components/schemas/Booker"
+        selectionPerLegs:
+          type: array
+          items:
+            $ref: "#/components/schemas/SelectionPerLeg"
+        # passengers:
+        #   type: array
+        #   items:
+        #     $ref: "#/components/schemas/Passenger"
+
+    BookingResponse:
+      type: object
+      required:
+        - bookingId
+        - status
+        - reservedTrip
+        - reservedPlaces
+      properties:
+        bookingId:
+          type: string
+          format: uuid
+        state:
+          $ref: "#/components/schemas/BookingState"
+        reservedTrip:
+          $ref: "#/components/schemas/Trip"
+        reservedPlaces:
+          type: array
+          items:
+            $ref: "#/components/schemas/TupleReservedPlacePassenger"
+
+    BookingPatchRequest:
+      type: object
+      required:
+        - bookingId
+        - state
+      properties:
+        bookingId:
+          type: string
+          format: uuid
+        state:
+          # $ref: "#/components/schemas/BookingState"
+          type: string
+          example: "CONFIRMED"
+
+    BookingPatchResponse:
+      type: object
+      required:
+        - bookingId
+      properties:
+        bookingId:
+          type: string
+          format: uuid
+        state:
+          $ref: "#/components/schemas/BookingState"
+        accommodationType:
+          $ref: "#/components/schemas/AccommodationType"
+        reservedPlaces:
+          type: array
+          items:
+            $ref: "#/components/schemas/TupleReservedPlacePassenger"
+
     ##
+
+    Trip:
+      type: object
+      required:
+        - tripId
+        - startTime
+        - endTime
+      properties:
+        tripId:
+          type: string
+          format: uuid
+        origin:
+          $ref: "#/components/schemas/Place"
+        destination:
+          $ref: "#/components/schemas/Place"
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        transfers:
+          type: number
+          format: int32
+        tripLegs:
+          type: array
+          items:
+            $ref: "#/components/schemas/TripLeg"
+
+    Place:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          example: Zürich HB
+
+    TripLeg:
+      type: object
+      properties:
+        legId:
+          type: number
+          format: int32
+        timedLeg:
+          $ref: "#/components/schemas/TimedLeg"
+        transferLeg:
+          $ref: "#/components/schemas/TransferLeg"
+
+    TimedLeg:
+      type: object
+      properties:
+        legBoard:
+          $ref: "#/components/schemas/LegBoard"
+        legAlight:
+          $ref: "#/components/schemas/LegAlight"
+        service:
+          $ref: "#/components/schemas/Service"
+
+    LegBoard:
+      type: object
+      properties:
+        stopPlace:
+          $ref: "#/components/schemas/StopPlace"
+        serviceDeparture:
+          $ref: "#/components/schemas/DepartureDate"
+
+    LegAlight:
+      type: object
+      properties:
+        stopPlace:
+          $ref: "#/components/schemas/StopPlace"
+        serviceArrival:
+          $ref: "#/components/schemas/DepartureDate"
+
+    TransferLeg:
+      type: object
+      properties:
+        legStart:
+          $ref: "#/components/schemas/Place"
+        legEnd:
+          $ref: "#/components/schemas/Place"
+        duration:
+          type: string
+          format: duration
+          example: PT20M
+
+    DepartureDate:
+      type: object
+      properties:
+        timetabledTime:
+          type: string
+          format: date-time
+
+    Service:
+      type: object
+      properties:
+        publishedServiceName:
+          type: string
+          example: "PE 905"
+        vehicleNumber:
+          type: string
+          example: "905"
+        operatorRef:
+          type: string
+          example: urn:uic:risc:1080:321
+
+    ##
+
+    BookingState:
+      type: string
+      enum:
+        - PREBOOKED
+        - CONFIRMED
+        - CANCELLED
+
+    PlaceSelection:
+      type: object
+      properties:
+        passengers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Passenger"
+        referencePlace:
+          type: object
+          description: selected place for an adjacent reservation (NEARBY)
+          properties:
+            placeNumber:
+              type: string
+            coachNumber:
+              type: string
+
+    SelectionPerLeg:
+      type: object
+      description: >-
+        Per leg three options to select places exist:
+        - selection per place properties (selectedOption)
+        - selection per reference place for adjacent reservation (selectedReferencePlace)
+        - selection per coach and places via a graphical place selection (selectedCoaches)
+      required:
+        - selectedReservationOfferId
+      properties:
+        selectedReservationOfferId:
+          type: string
+        selectedOptions:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlaceOptionsBundle"
+        selectedReferencePlace:
+          $ref: "#/components/schemas/PlaceSelection"
+        selectedCoaches:
+          type: array
+          items:
+            $ref: "#/components/schemas/SelectedCoaches"
+
+    SelectedCoaches:
+      type: object
+      properties:
+        coachNumber:
+          type: string
+        places:
+          description: selected places in case of graphical booking
+          type: array
+          items:
+            type: object
+            properties:
+              passenger:
+                $ref: "#/components/schemas/Passenger"
+              placeNumber:
+                type: string
+
+    PlaceOptionsBundle:
+      type: object
+      description: >-
+        Place selection of places for reservation linked to passengers.
+      properties:
+        passengers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Passenger"
+        placeProperties:
+          description: Properties of places as defined in 90810-10.
+          type: array
+          items:
+            $ref: "#/components/schemas/PlaceProperty"
+
+    TupleReservedPlacePassenger:
+      type: object
+      properties:
+        passenger:
+          $ref: "#/components/schemas/Passenger"
+        reservedPlacePerLeg:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReservedPlaceLeg"
+
+    ReservedPlaceLeg:
+      type: object
+      properties:
+        legId:
+          type: string
+        reservedPlace:
+          $ref: "#/components/schemas/ReservedPlace"
+
+    ReservedPlace:
+      type: object
+      description: A reserved place
+      properties:
+        id:
+          type: string
+          format: uuid
+        accommodationType:
+          $ref: "#/components/schemas/AccommodationType"
+        accommodationSubType:
+          $ref: "#/components/schemas/AccommodationSubType"
+        vehicleNumber:
+          type: string
+          example: "PE 905"
+        coachNumber:
+          type: string
+          example: 3
+        placeNumber:
+          type: string
+          example: 33
+        placeProperties:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlaceProperty"
+

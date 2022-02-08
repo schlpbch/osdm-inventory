@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: NOVA Inventory Booking API
-  version: 1.0.0-rc5
+  version: 1.0.0-rc6
   description: >-
     NOVA Inventory API to book places in a inventory
   contact:
@@ -49,6 +49,8 @@ paths:
             application/json:
               schema:
                 type: object
+                required:
+                  - availabilities
                 properties:
                   warning:
                     $ref: "#/components/schemas/WarningMessageList"
@@ -355,36 +357,16 @@ components:
       type: object
       required:
         - tripSpecifications
-        - passengers
+        - passengerSpecifications
       properties:
         tripSpecifications:
           type: array
           items:
             $ref: "#/components/schemas/TripSpecification"
-        requestedAccommodationSubTypes:
-          description: >-
-            Optional array of requested accommodation sub type such as EXPERIENCE.
-            If omitted no filtering on accommodation sub types is performed.
+        passengerSpecifications:
           type: array
           items:
-            $ref: "#/components/schemas/AccommodationSubType"
-        requestedComfortClasses:
-          description:
-            Optional array of comfort classes to filter (FIRST_CLASS or SECOND_CLASS).
-            If omitted no filtering
-          type: array
-          items:
-            $ref: "#/components/schemas/ComfortClass"
-        requestedPlaceProperties:
-          description: >-
-            Optional array of requested place properties such as WINDOW, TABLE,...
-          type: array
-          items:
-            $ref: "#/components/schemas/PlaceProperty"
-        passengers:
-          type: array
-          items:
-            $ref: "#/components/schemas/Passenger"
+            $ref: "#/components/schemas/PassengerSpecification"
 
     AvailabilityResponse:
       type: object
@@ -416,18 +398,14 @@ components:
       description: Availability per leg for a given trip.
       required:
         - legId
-        - seqId
-        - services
+        - reservationAvailabilities
       properties:
         legId:
           type: string
-        seqId:
-          type: number
-          format: int32
-        services:
+        reservationAvailabilities:
           type: array
           items:
-            $ref: "#/components/schemas/ServiceAvailability"
+            $ref: "#/components/schemas/ReservationAvailability"
 
     ##
 
@@ -458,18 +436,14 @@ components:
         the correct vehicles by a pricing engine.
       required:
         - legId
-        - seqId
       properties:
         legId:
           description: Id of this trip leg. Unique within trip result.
           type: string
-        seqId: # EXT
-          type: number
-          format: int32
         timedLeg:
           $ref: "#/components/schemas/TimedLegSpecification"
-        # transferLeg:
-        #  $ref: "#/components/schemas/TransferLeg"
+        transferLeg:
+          $ref: "#/components/schemas/TransferLegSpecification"
         # continousLeg:
         #   $ref: "#/components/schemas/ContinuousLeg"
 
@@ -620,6 +594,36 @@ components:
         phone:
           type: string
           example: 078 434 4434
+
+    PassengerSpecification:
+      description: >-
+        Passenger with the relevant information only to be contacted in case if a disruption.
+      type: object
+      required:
+        - id
+        - passengerType
+      properties:
+        id: 
+          type: string
+          format: uuid
+        externalRef:
+          type: string
+          example: TKT-ID-2314234
+        passengerType:
+          $ref: "#/components/schemas/PassengerType"
+        dateOfBirth:
+          description: date of birth of the passenger
+          type: string
+          format: date
+
+    PassengerType:
+      description: >-
+        Passenger type with the relevant information only to be contacted in case if a disruption.
+      type: string
+      x-extensible-enum:
+        - PERSON
+        - BICYCLE
+      example: PERSON
 
     Booker:
       type: object
@@ -775,28 +779,35 @@ components:
         - PANORAMA
         - FRONT_VIEW
 
-    ServiceAvailability:
+    ReservationAvailability:
       type: object
       required:
-        - accommodationSubType
-      properties:
-        accommodationSubTypes:
-          type: array
-          items:
-            $ref: "#/components/schemas/AccommodationSubTypeAvailability"
-
-    AccommodationSubTypeAvailability:
-      type: object
-      required:
-        - accommodationOfferId
+        - id
+        - inventory
         - comfortClass
-        - passengerReferences
+        - passengerIds
         - accommodationType
         - accommodationSubType
+        - numericAvailability
+        - placeProperties
       properties:
-        accommodationOfferId:
+        id:
           type: string
-          example: "offerid-1"
+          example: "id-1"
+        inventory:
+          $ref: "#/components/schemas/Inventory"
+        productCode:
+          type: string
+          description: >-
+            The product code expressed in the provider system (could be a
+            mapping from an even lower-level provider).
+          example: PT00AD
+        price:
+          $ref: "#/components/schemas/Price"
+        fulfillmentTypes:
+          type: array
+          items:
+            $ref: "#/components/schemas/FulfillmentType"
         comfortClass:
           $ref: "#/components/schemas/ComfortClass"
         accommodationType:
@@ -811,11 +822,88 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/PlaceProperty"
-        passengerReferences:
+        passengerIds:
           type: array
           items:
             type: string
             example: "passenger-1"
+
+    Inventory:
+      type: string
+      x-extensible-enum:
+        - CAPRE
+        - RESSYS
+
+    Price:
+      type: object
+      minProperties: 1
+      properties:
+        currency:
+          $ref: "#/components/schemas/Currency"
+        amount:
+          description: amount in cents
+          type: integer
+          format: int32
+        scale:
+          description: scale of the amount - the number of positions after the comma
+          type: integer
+          default: 2
+        vatDetails:
+          type: array
+          items:
+            $ref: "#/components/schemas/VAT"
+      required:
+        - currency
+        - amount
+
+    Currency:
+      description: ISO 4217 currency codes
+      type: string
+      example: CHF
+
+    VAT:
+      type: object
+      properties:
+        country:
+          description: ISO 3166 2A codes
+          type: string
+          example: CH
+        amount:
+          description: amount in cents
+          type: integer
+          format: int32
+          example: 5
+        scale:
+          description: scale of the amount - the number of positions after the comma
+          type: integer
+          default: 2
+        percentage:
+          type: number
+          format: float
+        taxId:
+          type: string
+        scope:
+          $ref: "#/components/schemas/VatScope"
+      required:
+        - country
+        - amount
+
+    VatScope:
+      description: scope where the VAT applies
+      type: string
+      x-extensible-enum:
+        - INTERNATIONAL
+        - NATIONAL
+        - SHORT_DISTANCE
+        - LONG_DISTANCE
+
+    FulfillmentType:
+      type: string
+      x-extensible-enum:
+        - ETICKET
+        - CIT_PAPER
+        - PASS_CHIP
+        - PASS_REFERENCE
 
     AccommodationType:
       type: string
@@ -957,6 +1045,8 @@ components:
 
     Place:
       type: object
+      required:
+        - id
       properties:
         id:
           type: string
@@ -1001,17 +1091,64 @@ components:
         serviceArrival:
           $ref: "#/components/schemas/DepartureDate"
 
-    TransferLeg:
+    TransferLegSpecification:
       type: object
+      required:
+        - legStart
+        - legEnd
       properties:
         legStart:
           $ref: "#/components/schemas/Place"
         legEnd:
           $ref: "#/components/schemas/Place"
+    
+    TransferLeg: ## OJP # Reduced scope
+      type: object
+      description: >-
+        A leg which links other legs of a trip where a transfer between different places is required. Provided by OJP.
+      required:
+        - legStart
+        - legEnd
+      properties:
+        transferMode:
+          $ref: "#/components/schemas/TransferMode"
+        legStart:
+          description: Stop/Station where boarding is done
+          $ref: "#/components/schemas/Place"
+        legEnd:
+          description: Stop/Station to alight
+          $ref: "#/components/schemas/Place"
+        timeWindowStart: # Inlined from TimeWindow
+          description: Time at which window begins.
+          type: string
+          format: date-time
+        timeWindowEnd: # Inlined from TimeWindow
+          description: Time at which window ends.
+          type: string
+          format: date-time
         duration:
+          description: Overall duration of this interchange.
           type: string
           format: duration
-          example: PT20M
+          example: "PT20M"
+
+    TransferMode: ## OJP
+      description: >-
+        Modes dedicated to perform transfers. Provided by OJP.
+      type: string
+      x-extensible-enum:
+        - WALK
+        - PARK_AND_RIDE
+        - BIKE_AND_RIDE
+        - CAR_HIRE
+        - BIKE_HIRE
+        - PROTECTED_CONNECTION
+        - GUARANTEED_CONNECTION
+        - REMAIN_IN_VEHICLE
+        - CHANGE_WITHIN_VEHICLE
+        - CHECK_IN
+        - CHECK_OUT
+      default: WALK       
 
     DepartureDate:
       type: object

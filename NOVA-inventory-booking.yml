@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: NOVA Inventory Booking API
-  version: 1.0.0-rc6
+  version: 1.0.0-rc7
   description: >-
     NOVA Inventory API to book places in a inventory
   contact:

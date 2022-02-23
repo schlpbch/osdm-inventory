@@ -367,7 +367,7 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/PassengerSpecification"
-        embeddedPart:
+        embeddedParts:
           type: string
           enum:
             - LEG_AVAILABILITIES
@@ -433,6 +433,352 @@ components:
             $ref: "#/components/schemas/FulfillmentType"
         placeAvailabilityId:
           type: string
+
+    ##
+
+    Passenger:
+      type: object
+      description: >-
+        Passenger information needed at offering step.
+      required:
+        - id
+        - passengerType
+      properties:
+        id:
+          type: string
+          description: >-
+            Id of the passenger resource in case service to patch a single passenger is provided.
+        abstract:
+          type: string
+          example: Andreas Schlapbach
+        externalReference:
+          description: >-
+            A stable reference to passengers from other elements, or from caller system.
+            When received in input of a trip-offers-collection request, it must be echoed back in the
+            response.
+          type: string
+        dateOfBirth:
+          description: date of birth of the passenger
+          type: string
+          format: date
+        passengerType:
+          $ref: "#/components/schemas/PassengerType"
+        cards:
+          description: reduction or loyalty cards owned by the passenger
+          type: array
+          items:
+            $ref: "#/components/schemas/CardReference"
+        gender:
+          $ref: "#/components/schemas/Gender"
+        details:
+          $ref: "#/components/schemas/PersonDetail"
+        passport:
+          $ref: "#/components/schemas/IdentificationDocument"
+        transportableDetails:
+          $ref: "#/components/schemas/Transportable"
+        prmNeeds:
+          type: array
+          items:
+            $ref: "#/components/schemas/PRMNeedType"
+        links:
+          type: array
+          items:
+            $ref: "#/components/schemas/Link"
+
+    ##
+
+    PassengerSpecification:
+      type: object
+      description: >-
+        Minimal specification of a passenger to request offers.
+      required:
+        - id
+        - passengerType
+      properties:
+        id:
+          type: string
+          description: >-
+            Id of the passenger resource in case service to patch a single passenger is provided.
+        externalReference:
+          description: >-
+            A stable reference to passengers from other elements, or from caller system.
+            When received in input of a trip-offers-collection request, it must be echoed back in the
+            response.
+          type: string
+          example: "TK-ID-12345"
+        passengerType:
+          $ref: "#/components/schemas/PassengerType"
+        dateOfBirth:
+          description: >-
+            Date of birth of the passenger. Only needed for passengers of type persons, family child, PRMS
+            and wheelchair.
+          type: string
+          format: date
+        cards:
+          description: reduction or loyalty cards owned by the passenger
+          type: array
+          items:
+            $ref: "#/components/schemas/CardReference"
+
+    CardReference:
+      type: object
+      required:
+        - types
+        - code
+      properties:
+        types:
+          description: Types of card. One card can have multiple roles, such as loyalty and reduction
+          type: array
+          items:
+            $ref: "#/components/schemas/CardType"
+        code:
+          description: Code of the card type according to issuer.
+          type: string
+        name:
+          description: Card name for printing on fulfillments.
+          type: string
+        number:
+          description: Unique number identifying the card.
+          type: string
+        issuer:
+          $ref: "#/components/schemas/Company"
+
+    Company:
+      description: >-
+        RICS company code or the upcoming compatible ERA company code.
+      type: string
+      example: "urn:uic:rics:1185"
+
+    PersonDetail:
+      type: object
+      description: >-
+        Personal information potentially needed at booking step. The main purpose is
+        being able to inform the customer of delays or disruptions.
+        PersonDetails providing personal information only information required in the booking.
+        It is not allowed to send personal information not required in the booking reply.
+        It is not allowed to send these personal data already in the booking request.
+      properties:
+        preferredLanguage:
+          type: string
+          description: Languages spoken by the traveler (ISO language code)
+        abstract:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        eMail:
+          type: string
+        phoneNumber:
+          description: Preferably a mobile phone number
+          type: string
+        address:
+          description: address of the traveller. Can be relevant for some pass holders
+          $ref: "#/components/schemas/Address"
+
+    IdentificationDocument:
+      type: object
+      description: >-
+        Travel document data to be exchanged for border control in case of legal requirements
+        PassengerDetails providing personal information only information required in the offer. 
+        It is not allowed to send personal information not required in the offer reply. 
+        It is legally not allowed to send these personal data already in the offer request.
+      properties:
+        id:
+          description: Identifier on the document.
+          type: string
+        type:
+          description: Refer to code list for values
+          type: string
+        name:
+          description: ICAO transliteration identical as written in the document
+          type: string
+        nationality:
+          description: ISO 3166 2A codes
+          type: string
+        cityOfBirth:
+          type: string
+        cityOfIssue:
+          description: place where the document is issued
+          type: string
+        cityOfResidence:
+          type: string
+        countryOfBirth:
+          description: ISO 3166 2A codes
+          type: string
+        countryOfIssue:
+          description: ISO 3166 2A codes
+          type: string
+        countryOfResidence:
+          description: ISO 3166 2A codes
+          type: string
+        dateOfIssue:
+          type: string
+          format: date-time
+        gender:
+          $ref: "#/components/schemas/Gender"
+        limitOfValidity:
+          type: string
+          format: date-time
+      required:
+        - id
+        - type
+
+    Gender:
+      type: string
+      description: >-
+        The gender of the passenger, which is important in the case of night trains.
+      enum:
+        - MALE
+        - FEMALE
+        - X
+
+    Transportable:
+      type: object
+      description: >-
+        Transportables which are handled similar to passengers like dogs, bicycles, car transport.
+        These transportables might need a ticket or reservation.
+      properties:
+        type:
+          description: >-
+            Subset of the values from the traveler type code list IRS 90918-10
+          type: string
+          x-extensible-enum:
+            - PET
+            - BICYCLE
+            - CAR
+            - MOTOR_CYCLE
+            - CAR_TRAILER
+        car:
+          $ref: "#/components/schemas/Car"
+        motorCycle:
+          $ref: "#/components/schemas/MotorCycle"
+        trailer:
+          $ref: "#/components/schemas/Trailer"
+      required:
+        - type
+
+    Car:
+      type: object
+      properties:
+        weight:
+          type: integer
+          format: int32
+        length:
+          type: integer
+          format: int32
+        width:
+          type: integer
+          format: int32
+        height:
+          type: integer
+          format: int32
+        model:
+          type: string
+          description: Free text description of the model (e.g. BMW X5)
+        attachedItems:
+          description: Indication of items attached to the car
+          type: array
+          items:
+            type: string
+            x-extensible-enum:
+              - ROOF_RACK
+              - BICYCLE_STAND
+        plate:
+          description: >-
+            The trailer plate is a personal data item and must not be provided in an offer request. 
+            It must be patched into the offer after the customer accepted the offer for booking.
+          type: string
+      required:
+        - weight
+        - length
+        - width
+        - height
+        - model
+
+    MotorCycle:
+      type: object
+      required:
+        - isSideCarIncluded
+      properties:
+        isSideCarIncluded:
+          type: boolean
+          default: false
+        plate:
+          description: >-
+            The trailer plate is a personal data item and must not be provided in an offer request. 
+            It must be patched into the offer after the customer accepted the offer for booking
+          type: string
+
+    Trailer:
+      type: object
+      properties:
+        weight:
+          description: weight in kg
+          type: integer
+          format: int32
+        length:
+          description: length in cm
+          type: integer
+          format: int32
+        width:
+          description: width in cm
+          type: integer
+          format: int32
+        height:
+          description: length in cm
+          type: integer
+          format: int32
+        plate:
+          description: >-
+            The trailer plate is a personal data item and must not be provided in an offer request. 
+            It must be patched into the offer after the customer accepted the offer for booking
+          type: string
+      required:
+        - weight
+        - length
+        - width
+        - height
+
+    CardType:
+      type: string
+      x-extensible-enum:
+        - REDUCTION_CARD
+        - LOYALTY_CARD
+        - CHIP_CARD
+        - PASS
+      default: REDUCTION_CARD
+
+    PassengerType:
+      type: string
+      description: >-
+        Passenger type according to UIC passenger, i.e. traveler type list.
+        See https://unioninternationalcheminsdefer.github.io/OSDM/spec/catalog-of-code-lists/
+      x-extensible-enum:
+        - DOG
+        - PET
+        - LUGGAGE
+        - PRM
+        - BICYCLE
+        - PRAM
+        - ACCOMP_DOG
+        - CAR
+        - PERSON
+        - MOTOCYCLE
+        - TRAILER
+        - FAMILY_CHILD
+        - WHEELCHAR
+      example: PERSON
+      default: PERSON
+
+    PRMNeedType:
+      type: string
+      x-extensible-enum:
+        - NEED_PRM_SUPPORT
+        - WHEELCHAIR
+        - ACCOMPANYING_DOG
+        - COMPANION_SEAT
+        - COMPANION
 
     ##
 
@@ -535,7 +881,7 @@ components:
             Describes the departure situation at this leg board stop point (group of attributes
             of timetabled passing time, estimated passing time, observed passing time).
           $ref: "#/components/schemas/ServiceTime"
-    
+
     LegAlightSpecification:
       type: object
       description: >-
@@ -553,7 +899,7 @@ components:
             Describes the arrival situation at this leg board stop point (group of attributes
             of timetabled passing time, estimated passing time, observed passing time).
           $ref: "#/components/schemas/ServiceTime"
-    
+
     DatedJourney: ## OJP # Reduced scope
       type: object
       description: >-
@@ -562,7 +908,7 @@ components:
         # - operatingDayRef
         # - journeyRef
         # - mode
-        # - publishedServiceName # EXT 
+        # - publishedServiceName # EXT
         # - privateMode # EXT
         - operatorRefs
         # - originText
@@ -604,9 +950,9 @@ components:
           type: array
           items:
             type: string
-            example: 
-             - "S 52"
-             - "B 19"
+            example:
+              - "S 52"
+              - "B 19"
         operatorRefs:
           description: >-
             Reference to transport operators.
@@ -616,10 +962,10 @@ components:
           type: array
           items:
             type: string
-            example: 
-             - "urn:uic:rics:1185:11"
-             - "urn:uic:rics:1185:72"
-             - "urn:uic:rics:1185:48"
+            example:
+              - "urn:uic:rics:1185:11"
+              - "urn:uic:rics:1185:72"
+              - "urn:uic:rics:1185:48"
 
     ServiceTime: ## OJP
       type: object
@@ -719,167 +1065,6 @@ components:
         (e.g. NeTEx, SIRI, OJP). Provided by OJP.
       type: string
       example: "urn:uic:sbc:76"
-
-    ##
-
-    Passenger:
-      description: >-
-        Passenger with the relevant information only to be contacted in case if a disruption.
-      type: object
-      properties:
-        externalRef:
-          type: string
-          example: TKT-ID-2314234
-        firstName:
-          type: string
-          example: Patrick
-        lastName:
-          type: string
-          example: Schweizer
-        dateOfBirth:
-          type: string
-          format: date
-        eMail:
-          type: string
-          example: p.schweizer@demo.ch
-        phone:
-          type: string
-          example: 078 434 4434
-
-    PassengerSpecification:
-      description: >-
-        Passenger with the relevant information only to be contacted in case if a disruption.
-      type: object
-      required:
-        - id
-        - passengerType
-      properties:
-        id: 
-          type: string
-          format: uuid
-        externalRef:
-          type: string
-          example: TKT-ID-2314234
-        passengerType:
-          $ref: "#/components/schemas/PassengerType"
-        dateOfBirth:
-          description: date of birth of the passenger
-          type: string
-          format: date
-
-    PassengerType:
-      description: >-
-        Passenger type with the relevant information only to be contacted in case if a disruption.
-      type: string
-      x-extensible-enum:
-        - PERSON
-        - BICYCLE
-      example: PERSON
-
-    Booker:
-      type: object
-      description: >-
-        Booker information needed at offering step.
-      properties:
-        id:
-          type: string
-        externalReference:
-          description: >-
-            A stable reference to a booker from other elements, or from caller system.
-            When received in input of a trip-offers-collection request, it must be echoed back in the
-            response.
-          type: string
-        details:
-          $ref: "#/components/schemas/PersonDetail"
-
-    PersonDetail:
-      type: object
-      description: >-
-        Personal information potentially needed at booking step. The main purpose is
-        being able to inform the customer of delays or disruptions.
-        PersonDetails providing personal information only information required in the booking.
-        It is not allowed to send personal information not required in the booking reply.
-        It is not allowed to send these personal data already in the booking request.
-      properties:
-        preferredLanguage:
-          type: string
-          description: Languages spoken by the traveler (ISO Language code)
-        abstract:
-          type: string
-        firstName:
-          type: string
-        lastName:
-          type: string
-        eMail:
-          type: string
-        phoneNumber:
-          description: Preferably a mobile phone number
-          type: string
-        address:
-          description: address of the traveller. Can be relevant for some pass holders
-          $ref: "#/components/schemas/Address"
-
-    Address: ## OJP # Reduced scope
-      description: >-
-        A descriptive data associated with a place that can be used to describe the unique geographical context of a
-        place for the purposes of identifying it. may be refined as either a road address, a postal address or both.
-        Provided by OJP.
-      # allOf:
-      type: object
-      required:
-        # - addressCode
-        - addressName
-      properties:
-        addressCode:
-          description: ID of this address.
-          type: string
-          example: NL:1916200000022621
-        # privateCode:  # Out of scope
-        #   description: Code of this address in private/foreign/proprietary coding schemes.
-        #   $ref: "#/components/schemas/PrivateCode"
-        addressName:
-          description: Name or description of address for use in passenger information.
-          type: string
-          example: Oude Trambaan 7, 2265CA Leidschendam, Nederland
-        # nameSuffix:  # Out of scope
-        #   description: House number of the address. If none is given, either a crossing street can be given, or the whole street is meant.
-        #   type: string
-        # - $ref: "#/components/schemas/AddressDetail"
-        countryName:
-          description: Country of the address.
-          type: string
-          example: The Netherlands
-        countryCode:
-          description: ISO country code (2 alpha), relative URNs with base urn:iso:std:iso:3166 are recommended
-          type: string
-          example: DE
-        postCode:
-          description: Postal code of the address.
-          type: string
-          example: 2265CA
-        city: # EXT
-          description: City name
-          type: string
-          example: Leidschendam
-        topographicPlaceName:
-          description: >-
-            TopographicPlace name of the address. If set it should at least contain the city name.
-          type: string
-          example: Leidschendam
-        # topographicPlaceRef:  # Out of scope
-        #   description: If at least one is set, only place objects within the given localities are allowed.If at least one is set, only place objects within the given localities are allowed.Reference to a TopographicPlace
-        #   $ref: "#/components/schemas/TopographicPlaceRef"
-        street:
-          description: Street name of the address.
-          type: string
-          example: Oude Trambaan
-        houseNumber:
-          description: House number of the address. If none is given, either a crossing street can be given, or the whole street is meant.
-          type: string
-          example: 7
-        # crossRoad:  # Out of scope
-        #   description: Crossing. This can be used to be more specific without using house numbers.
-        #   type: string
 
     ##
 
@@ -1089,183 +1274,298 @@ components:
         - WHEELCHAIR_WITH_SEAT
       example: OPEN_SPACE
 
-    ## Booking
-    BookingRequest:
+    Trip: ## OJP # Reduced scope
       type: object
       description: >-
-        place selection options and selected options in an offer
-        - selected place properties (selectedOption)
-        - reference place for adjacent reservation (selectedReferencePlace)
-        - selected places from a graphical place selection (selectedCoaches)
+        A complete trip from origin to destination. Provided by OJP.
       required:
-        - booker
-        - selectionPerLegs
-      properties:
-        booker:
-          $ref: "#/components/schemas/Booker"
-        selectionPerLegs:
-          type: array
-          items:
-            $ref: "#/components/schemas/SelectionPerLeg"
-        # passengers:
-        #   type: array
-        #   items:
-        #     $ref: "#/components/schemas/Passenger"
-
-    BookingResponse:
-      type: object
-      required:
-        - bookingId
-        - status
-        - reservedTrip
-        - reservedPlaces
-      properties:
-        bookingId:
-          type: string
-          format: uuid
-        state:
-          $ref: "#/components/schemas/BookingState"
-        reservedTrip:
-          $ref: "#/components/schemas/Trip"
-        reservedPlaces:
-          type: array
-          items:
-            $ref: "#/components/schemas/TupleReservedPlacePassenger"
-
-    BookingPatchRequest:
-      type: object
-      required:
-        - bookingId
-        - state
-      properties:
-        bookingId:
-          type: string
-          format: uuid
-        state:
-          # $ref: "#/components/schemas/BookingState"
-          type: string
-          example: "CONFIRMED"
-
-    BookingPatchResponse:
-      type: object
-      required:
-        - bookingId
-      properties:
-        bookingId:
-          type: string
-          format: uuid
-        state:
-          $ref: "#/components/schemas/BookingState"
-        accommodationType:
-          $ref: "#/components/schemas/AccommodationType"
-        reservedPlaces:
-          type: array
-          items:
-            $ref: "#/components/schemas/TupleReservedPlacePassenger"
-
-    ##
-
-    Trip:
-      type: object
-      required:
-        - tripId
+        - id # EXT replaces tripId, fix to OJP submitted, see https://github.com/VDVde/OJP/issues/179
+        - duration
         - startTime
         - endTime
+        - transfers
+        - legs # EXT replaces tripLegs, fix to OJP submitted, see https://github.com/VDVde/OJP/issues/179
       properties:
-        tripId:
+        id:
+          description: >-
+            Id of this trip for referencing purposes. Unique within trip response.
           type: string
-          format: uuid
+        duration:
+          description: Overall duration of the trip
+          type: string
+          example: "PT20M"
         origin:
-          $ref: "#/components/schemas/Place"
+          description: >-
+            Specifies the origin situation from where the user wants to start.
+          $ref: "#/components/schemas/Place" # EXT no support for array
         destination:
-          $ref: "#/components/schemas/Place"
+          description: >-
+            Specifies the destination situation where the user is heading to.
+          $ref: "#/components/schemas/Place" # EXT no support for array
         startTime:
+          description: Departure time at origin.
           type: string
           format: date-time
         endTime:
+          description: Arrival time at destination
           type: string
           format: date-time
         transfers:
+          description: Number of interchanges
           type: number
-          format: int32
-        tripLegs:
+          format: integer
+          minimum: 0
+        distance:
+          description: Trip distance
+          type: number
+          format: integer
+          minimum: 0
+        legs:
+          description: Legs ot the trip
           type: array
           items:
             $ref: "#/components/schemas/TripLeg"
+          minItems: 1
+        # operatingDays: ## Out of scope
+        #  $ref: "#/components/schemas/OperatingDays"
+        # situationFullRef: ## Out of scope
+        #   $ref: "#/components/schemas/SituationFullRef"
+        status: # EXT replaces tripLegs, fix to OJP submitted, see https://github.com/VDVde/OJP/issues/182
+          $ref: "#/components/schemas/TripStatus"
 
-    Place:
+    TripStatus: ## OJP
       type: object
+      description: >-
+        Parameters which describe the current status of a trip. Provided by OJP.
+      properties:
+        unplanned:
+          description: Whether this trip is an additional one that has not been planned.
+          type: boolean
+          default: false
+        canceled:
+          description: Whether this trip is cancelled and will not be run.
+          type: boolean
+          default: false
+        deviation:
+          description: Whether this trip deviates from the planned service pattern.
+          type: boolean
+          default: false
+        delayed:
+          description: Whether this trip is delayed.
+          type: boolean
+          default: false
+        infeasible:
+          description: Whether this trip cannot be used, due to operational delays and impossible transfers.
+          type: boolean
+          default: false
+
+    TripLeg: ## OJP  # Reduced scope
+      type: object
+      description: >-
+        A single stage of a trip that is made without change of MODE or service (ie: between each interchange).
+        Provided by OJP.
       required:
-        - id
+        - id ## EXT replaces legId, fix to OJP submitted, see https://github.com/VDVde/OJP/issues/181
       properties:
         id:
+          description: Id of this trip leg. Unique within trip result. A seqId is a leg id.
           type: string
-        name:
-          type: string
-          example: Zürich HB
-
-    TripLeg:
-      type: object
-      properties:
-        legId:
-          type: number
-          format: int32
         timedLeg:
           $ref: "#/components/schemas/TimedLeg"
         transferLeg:
           $ref: "#/components/schemas/TransferLeg"
+        continuousLeg:
+          $ref: "#/components/schemas/ContinuousLeg"
 
-    TimedLeg:
+    TimedLeg: ## OJP # Reduced scope
       type: object
+      description: >-
+        A leg which is bound to a timetabled schedule. Corresponds to a ride. Provided by OJP.
+      required:
+        - alight # EXT renamed timedLeg
+        - board # EXT renamed boardLeg
+        - service
       properties:
-        legBoard:
+        board:
           $ref: "#/components/schemas/LegBoard"
-        legAlight:
+        intermediates:
+          type: array
+          items:
+            $ref: "#/components/schemas/LegIntermediate"
+        alight:
           $ref: "#/components/schemas/LegAlight"
         service:
-          $ref: "#/components/schemas/Service"
+          $ref: "#/components/schemas/DatedJourney"
+        # legAttribute:  # Out of scope
+        #   type: array
+        #   items:
+        #     $ref: "#/components/schemas/LegAttribute"
+        # operatingDays:  # Out of scope
+        #  $ref: "#/components/schemas/OperatingDays"
+        # legTrack:  # Out of scope
+        #   type: array
+        #   items:
+        #     $ref: "#/components/schemas/LegTrack"
+        duration: # EXT add attribute for consistency
+          type: string
+          format: duration
 
-    LegBoard:
+    StopCallStatus: ## OJP
       type: object
+      description: >-
+        Status properties for the vehicle call at this stop. Provided by OJP.
       properties:
-        stopPlace:
-          $ref: "#/components/schemas/StopPlace"
-        serviceDeparture:
-          $ref: "#/components/schemas/DepartureDate"
+        order:
+          description: Sequence number of this stop in the service pattern of the journey.
+          type: integer
+          minimum: 1
+        requestStop:
+          description: The vehicle journey calls at this stop only on demand.
+          type: boolean
+          default: false
+        unplannedStop:
+          description: This stop has not been planned by the planning department.
+          type: boolean
+          default: false
+        notServicedStop:
+          description: The vehicle will not call at this stop despite earlier planning.
+          type: boolean
+          default: false
+        noBoardingAtStop:
+          description: Boarding will not be allowed at this stop of this journey.
+          type: boolean
+          default: false
+        noAlightingAtStop:
+          description: Alighting will not be allowed at this stop of this journey.
+          type: boolean
+          default: false
 
-    LegAlight:
+    LegBoard: ## OJP
       type: object
-      properties:
-        stopPlace:
-          $ref: "#/components/schemas/StopPlace"
-        serviceArrival:
-          $ref: "#/components/schemas/DepartureDate"
-
-    TransferLegSpecification:
-      type: object
+      description: >-
+        Describes the the situation at a stop or station at which the passenger boards a Leg
+        of a trip including time-related information. Provided by OJP.
+      #allOf:
       required:
-        - legStart
-        - legEnd
+        - stopPlaceRef ## EXT stopPlaceRef instead of stopPointRef
+        - serviceDeparture
+        - stopPointName
       properties:
-        legStart:
-          $ref: "#/components/schemas/Place"
-        legEnd:
-          $ref: "#/components/schemas/Place"
-    
+        stopPlaceRef:
+          $ref: "#/components/schemas/StopPlaceRef" ## EXT stopPlaceRef instead of stopPointRef
+        stopPointName: # Out of scope
+          type: string
+          example: Luzern
+        plannedQuay:
+          description: >-
+            Name of the bay where to board/alight from the vehicle. According to 
+            planned timetable.
+          type: string
+          example: "3"
+        estimatedQuay:
+          description: >-
+            Name of the bay where to board the vehicle. As to the latest realtime status.
+          type: string
+          example: "8"
+        serviceDeparture: # EXT directly inline service time
+          description: >-
+            Describes the departure situation at this leg board stop point (group of attributes
+            of timetabled passing time, estimated passing time, observed passing time).
+          $ref: "#/components/schemas/ServiceTime"
+        status:
+          $ref: "#/components/schemas/StopCallStatus"
+
+    LegIntermediate: ## OJP
+      type: object
+      description: >-
+        Describes the situation at a stop or station that lies between the LegBoard and 
+        LegAlight stop or station including time-related information. Provided by OJP.
+      #allOf:
+      required:
+        - stopPlaceRef ## EXT stopPlaceRef instead of stopPointRef
+        - serviceArrival
+        - serviceDeparture
+        - stopPointName
+      properties:
+        stopPlaceRef:
+          $ref: "#/components/schemas/StopPlaceRef" ## EXT stopPlaceRef instead of stopPointRef
+        stopPointName:
+          type: string
+          example: Luzern
+        plannedQuay:
+          description: >-
+            Name of the bay where to board/alight from the vehicle. According to 
+            planned timetable.
+          type: string
+          example: "3"
+        estimatedQuay:
+          description: >-
+            Name of the bay where to board the vehicle. As to the latest realtime status.
+          type: string
+          example: "8"
+        serviceArrival: # EXT directly inline service time
+          description: >-
+            Describes the arrival situation at this leg board stop point (group of attributes
+            of timetabled passing time, estimated passing time, observed passing time).
+          $ref: "#/components/schemas/ServiceTime"
+        serviceDeparture: # EXT directly inline service time
+          description: >-
+            Describes the departure situation at this leg board stop point (group of attributes
+            of timetabled passing time, estimated passing time, observed passing time).
+          $ref: "#/components/schemas/ServiceTime"
+        status:
+          $ref: "#/components/schemas/StopCallStatus"
+
+    LegAlight: ## OJP
+      type: object
+      description: >-
+        Describes the situation at a stop or station at which the passenger alights from a Leg 
+        of a trip including time-related information. Provided by OJP.
+      #allOf:
+      required:
+        - stopPlaceRef ## EXT stopPlaceRef instead of stopPointRef
+        - serviceArrival
+        - stopPointName
+      properties:
+        stopPlaceRef:
+          $ref: "#/components/schemas/StopPlaceRef" ## EXT stopPlaceRef instead of stopPointRef
+        stopPointName:
+          type: string
+          example: Luzern
+        plannedQuay:
+          description: >-
+            Name of the bay where to board/alight from the vehicle. According to 
+            planned timetable.
+          type: string
+          example: "3"
+        estimatedQuay:
+          description: >-
+            Name of the bay where to board the vehicle. As to the latest realtime status.
+          type: string
+          example: "8"
+        serviceArrival: # EXT directly inline service time
+          description: >-
+            Describes the arrival situation at this leg board stop point (group of attributes
+            of timetabled passing time, estimated passing time, observed passing time).
+          $ref: "#/components/schemas/ServiceTime"
+        status:
+          $ref: "#/components/schemas/StopCallStatus"
+
     TransferLeg: ## OJP # Reduced scope
       type: object
       description: >-
-        A leg which links other legs of a trip where a transfer between different places is required. Provided by OJP.
+        A leg which links other legs of a trip where a transfer between different places is required. 
+        Provided by OJP.
       required:
-        - legStart
-        - legEnd
+        - start # EXT renamed legStart
+        - end # EXT renamed legEnd
       properties:
         transferMode:
           $ref: "#/components/schemas/TransferMode"
-        legStart:
+        start:
           description: Stop/Station where boarding is done
           $ref: "#/components/schemas/Place"
-        legEnd:
+        end:
           description: Stop/Station to alight
           $ref: "#/components/schemas/Place"
         timeWindowStart: # Inlined from TimeWindow
@@ -1298,28 +1598,292 @@ components:
         - CHANGE_WITHIN_VEHICLE
         - CHECK_IN
         - CHECK_OUT
-      default: WALK       
+      default: WALK
 
-    DepartureDate:
+    ContinuousLeg: ## OJP # Reduced scope
       type: object
+      description: >-
+        A leg of a journey that is not bound to a timetable. Provided by OJP.
+      required:
+        - start
+        - end
+        - service
       properties:
-        timetabledTime:
+        start:
+          description: Stop/Station where boarding is done
+          $ref: "#/components/schemas/Place"
+        end:
+          description: Stop/Station to alight
+          $ref: "#/components/schemas/Place"
+        service:
+          $ref: "#/components/schemas/ContinuousService"
+        timeWindowStart: # Inlined from TimeWindow
+          description: Time at which window begins.
           type: string
           format: date-time
+        timeWindowEnd: # Inlined from TimeWindow
+          description: Time at which window ends.
+          type: string
+          format: date-time
+        duration:
+          description: >-
+            Duration of this leg according to user preferences like walk speed.
+          type: string
+          format: duration
+          example: "1800S"
 
-    Service:
+    ContinuousService: ## OJP
       type: object
+      description: >-
+        A vehicle movement on a continuous, non-timetabled service.
+        Service of this leg. May be "walk" in most cases, but also cycling or taxi etc.
+        Provided by OJP.
+      required:
+        - operatingDayRef
+        - journeyRef
+        - mode
+        - publishedServiceName
+        - originText
+        - destinationText
       properties:
+        continuousMode:
+          $ref: "#/components/schemas/ContinuousMode"
+        individualMode:
+          $ref: "#/components/schemas/IndividualMode"
+        operatingDayRef:
+          $ref: "#/components/schemas/OperationDayRef"
+        journeyRef:
+          $ref: "#/components/schemas/JourneyRef"
+        mode: # Ask Stefan
+          type: string
+          example: "Ask Stefan"
         publishedServiceName:
           type: string
-          example: "PE 905"
-        vehicleNumber:
+          example: "Circle Line"
+        originText:
           type: string
-          example: "905"
-        operatorRef:
+        destinationText:
           type: string
-          example: urn:uic:risc:1080:321
-    
+
+    ContinuousMode: ## OJP
+      description: >-
+        Types of modes that run at any time without a timetable. Provided by OJP.
+      type: string
+      enum:
+        - WALK
+        - DEMAND_RESPONSIVE
+        - REPLACEMENT_SERVICE
+
+    IndividualMode: ## OJP
+      description: >-
+        Modes which an individual powers themselves (such as walk, cycle). Provided by OJP.
+      type: string
+      x-extensible-enum:
+        - WALK
+        - CYCLE
+        - TAXI
+        - SELF_DRIVE_CAR
+        - OTHERS_DRIVE_CAR
+        - MOTORCYCLE
+        - TRUCK
+        - SCOOTER
+        - RIDE_POOL_CAR
+        - CAR_SHARING
+        - CYCLE_SHARING
+        - SCOOTER_SHARING
+      default: WALK
+
+    OperationDayRef: ## OJP
+      description: >-
+        Reference to an operating day. Provided by OJP.
+      type: string
+      example: "OperatingDay:12345"
+
+    JourneyRef: ## OJP
+      description: >-
+        Reference to a journey. Provided by OJP.
+      type: string
+      example: "ServiceJourney:1"
+
+    Place: ## OJP # Reduced scope
+      description: >-
+        A geographic place of any type which may be specified as the origin or destination of a trip. Provided by OJP.
+      # allOf:
+      #- oneOf:
+      #  - $ref: "#/components/schemas/AddressStructure"
+      #  - $ref: "#/components/schemas/PointOfInterest"
+      #  - $ref: "#/components/schemas/StopPlace"
+      #  - $ref: "#/components/schemas/StopPointStructure"  # Out of scope
+      #  - $ref: "#/components/schemas/TopographicPlaceStructure"  # Out of scope
+      #- $ref: "#/components/schemas/GeoPosition"
+      type: object
+      required:
+        - id
+        # - name  ## EXT
+        # - geoCoordinate  ## EXT
+      properties:
+        id:
+          type: string
+          description: >-
+            id uniquely defining the place. The code is provided as URN, relative URNs are allowed with base path urn:uic:stn "0850000"
+          example: "urn:uic:stn:8500000"
+        name:
+          type: string
+          example: Zürich HB
+        address:
+          $ref: "#/components/schemas/Address"
+        pointOfInterest:
+          $ref: "#/components/schemas/PointOfInterest"
+        stopPlace:
+          $ref: "#/components/schemas/StopPlace"
+        # stopPoint:
+        #  - $ref: "#/components/schemas/StopPointStructure"  # Out of scope
+        # topographicPlace:
+        #  - $ref: "#/components/schemas/TopographicPlaceStructure"  # Out of scope
+        connectionPoint: # EXT OSDM extension for virtual border points
+          $ref: "#/components/schemas/FareConnectionPoint"
+        geoCoordinate:
+          $ref: "#/components/schemas/GeoPosition"
+        link:
+          $ref: "#/components/schemas/Link"
+
+    Address: ## OJP # Reduced scope
+      description: >-
+        A descriptive data associated with a place that can be used to describe the unique geographical context of a
+        place for the purposes of identifying it. may be refined as either a road address, a postal address or both.
+        Provided by OJP.
+      # allOf:
+      type: object
+      required:
+        - addressCode
+        - addressName
+      properties:
+        addressCode:
+          description: ID of this address.
+          type: string
+          example: NL:1916200000022621
+        # privateCode:  # Out of scope
+        #   description: Code of this address in private/foreign/proprietary coding schemes.
+        #   $ref: "#/components/schemas/PrivateCode"
+        addressName:
+          description: Name or description of address for use in passenger information.
+          type: string
+          example: Oude Trambaan 7, 2265CA Leidschendam, Nederland
+        # nameSuffix:  # Out of scope
+        #   description: House number of the address. If none is given, either a crossing street can be given, or the whole street is meant.
+        #   type: string
+        # - $ref: "#/components/schemas/AddressDetail"
+        countryName:
+          description: Country of the address.
+          type: string
+          example: The Netherlands
+        countryCode:
+          description: ISO country code (2 alpha), relative URNs with base urn:iso:std:iso:3166 are recommended
+          type: string
+          example: DE
+        postCode:
+          description: Postal code of the address.
+          type: string
+          example: 2265CA
+        city: # EXT
+          description: City name
+          type: string
+          example: Leidschendam
+        topographicPlaceName:
+          description: >-
+            TopographicPlace name of the address. If set it should at least contain the city name.
+          type: string
+          example: Leidschendam
+        # topographicPlaceRef:  # Out of scope
+        #   description: If at least one is set, only place objects within the given localities are allowed.If at least one is set, only place objects within the given localities are allowed.Reference to a TopographicPlace
+        #   $ref: "#/components/schemas/TopographicPlaceRef"
+        street:
+          description: Street name of the address.
+          type: string
+          example: Oude Trambaan
+        houseNumber:
+          description: House number of the address. If none is given, either a crossing street can be given, or the whole street is meant.
+          type: string
+          example: 7
+        # crossRoad:  # Out of scope
+        #   description: Crossing. This can be used to be more specific without using house numbers.
+        #   type: string
+
+    PointOfInterest: ## OJP # Reduced scope
+      description: >-
+        A type of place to or through which passengers may wish to navigate as part of
+        their journey and which is modelled in detail by journey planners. Provided by OJP.
+      type: object
+      required:
+        - pointOfInterestCode
+        - pointOfInterestName
+      properties:
+        pointOfInterestCode:
+          description: ID of this Point of Interest.
+          type: string
+        pointOfInterestName:
+          description: Name or description of point of interest for use in passenger information.
+          type: string
+          example: Park Rozenrust
+
+    FareConnectionPoint:
+      type: object
+      description: >-
+        Connection point connecting two fare regimes. The connection is possible between stations of the two provided station sets.
+        A legacy border point code (id) might be provided as an additional code within the stations (code list BORDER_POINT provided in URN). 
+        In case the connection point is a real station this station is indicated. 
+        In case the connection point is between stations for each side of the border real stations must be provided. 
+        Multiple sets of station can be provided in the rare case that the connection point connects more than two station (A-B and A-C).
+        Multiple stations within a set at one side of the border might be provided in case of changes (new stations build near the border). 
+
+        Providing the UIC code for the station is mandatory.
+      properties:
+        name:
+          type: string
+        stationSets:
+          type: array
+          items:
+            type: array
+            items:
+              $ref: "#/components/schemas/StopPlaceRef" # EXT Changed from StopPoint
+      required:
+        - stationSets
+
+    GeoPosition: ## OJP # Reduced scope
+      type: object
+      description: >-
+        WGS84 coordinates position. Provided by OJP.
+      properties:
+        longitude:
+          $ref: "#/components/schemas/Longitude"
+        latitude:
+          $ref: "#/components/schemas/Latitude"
+        # altitude:   # Out of scope
+        #   $ref: "#/components/schemas/Altitude"
+        # precision:   # Out of scope
+        #   $ref: "#/components/schemas/Precision"
+      required:
+        - latitude
+        - longitude
+
+    Longitude: ## OJP
+      description: >-
+        Longitude from Greenwich Meridian. -180 (West) to +180 (East). Decimal degrees. eg 2.356. Provided by OJP.
+      type: number
+      format: float
+      example: 8.54021
+      minimum: -180.0
+      maximum: 180.0
+
+    Latitude: ## OJP
+      description: >-
+        Latitude from equator. -90 (South) to +90 (North). Decimal degrees. eg 56.356. Provided by OJP.
+      type: number
+      format: float
+      example: 47.37818
+      minimum: -90.0
+      maximum: 90.0
+
     StopPlace: ## OJP # Reduced scope
       type: object
       description: >-
@@ -1338,42 +1902,46 @@ components:
           description: Name of this stop place for use in passenger information.
           type: string
           example: Zürich HB
-        # nameSuffix:  # Out of scope
-        #   description: Additional description of the stop place that may be appended to the name if enough space is available.
-        #   type: string
-        #   example: Exhibition Center
-        # privateCode:  # Out of scope
-        #   description: Code of this stop place in private/foreign/proprietary coding schemes.
-        #   $ref: "#/components/schemas/PrivateCode"
-        # topographicPlaceRef:  # Out of scope
-        #   description: If at least one is set, only place objects within the given localities are allowed.If at least one is set, only place objects within the given localities are allowed.Reference to a TopographicPlace
-        #   $ref: "#/components/schemas/TopographicPlaceRef"
-        # - $ref: "#/components/schemas/StopAttributes" # Out of scope
 
-    ##
+    ## Booking
 
-    BookingState:
-      type: string
-      enum:
-        - PREBOOKED
-        - CONFIRMED
-        - CANCELLED
-
-    PlaceSelection:
+    BookingRequest:
       type: object
+      description: >-
+        place selection options and selected options in an offer
+        - selected place properties (selectedOption)
+        - reference place for adjacent reservation (selectedReferencePlace)
+        - selected places from a graphical place selection (selectedCoaches)
+      required:
+        - booker
+        - selectionPerLegs
       properties:
-        passengers:
+        booker:
+          $ref: "#/components/schemas/Booker"
+        selectionPerLegs:
           type: array
           items:
-            $ref: "#/components/schemas/Passenger"
-        referencePlace:
-          type: object
-          description: selected place for an adjacent reservation (NEARBY)
-          properties:
-            placeNumber:
-              type: string
-            coachNumber:
-              type: string
+            $ref: "#/components/schemas/SelectionPerLeg"
+        # passengers:
+        #   type: array
+        #   items:
+        #     $ref: "#/components/schemas/Passenger"
+
+    Booker:
+      type: object
+      description: >-
+        Booker information needed at offering step.
+      properties:
+        id:
+          type: string
+        externalReference:
+          description: >-
+            A stable reference to a booker from other elements, or from caller system.
+            When received in input of a trip-offers-collection request, it must be echoed back in the
+            response.
+          type: string
+        details:
+          $ref: "#/components/schemas/PersonDetail"
 
     SelectionPerLeg:
       type: object
@@ -1398,6 +1966,37 @@ components:
           items:
             $ref: "#/components/schemas/SelectedCoaches"
 
+    PlaceOptionsBundle:
+      type: object
+      description: >-
+        Place selection of places for reservation linked to passengers.
+      properties:
+        passengers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Passenger"
+        placeProperties:
+          description: Properties of places as defined in 90810-10.
+          type: array
+          items:
+            $ref: "#/components/schemas/PlaceProperty"
+
+    PlaceSelection:
+      type: object
+      properties:
+        passengers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Passenger"
+        referencePlace:
+          type: object
+          description: selected place for an adjacent reservation (NEARBY)
+          properties:
+            placeNumber:
+              type: string
+            coachNumber:
+              type: string
+
     SelectedCoaches:
       type: object
       properties:
@@ -1414,21 +2013,6 @@ components:
               placeNumber:
                 type: string
 
-    PlaceOptionsBundle:
-      type: object
-      description: >-
-        Place selection of places for reservation linked to passengers.
-      properties:
-        passengers:
-          type: array
-          items:
-            $ref: "#/components/schemas/Passenger"
-        placeProperties:
-          description: Properties of places as defined in 90810-10.
-          type: array
-          items:
-            $ref: "#/components/schemas/PlaceProperty"
-
     TupleReservedPlacePassenger:
       type: object
       properties:
@@ -1438,6 +2022,68 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ReservedPlaceLeg"
+
+    BookingResponse:
+      type: object
+      required:
+        - bookingId
+        - status
+        - reservedTrip
+        - reservedPlaces
+      properties:
+        bookingId:
+          type: string
+          format: uuid
+        status:
+          $ref: "#/components/schemas/BookingStatus"
+        reservedTrip:
+          $ref: "#/components/schemas/Trip"
+        reservedPlaces:
+          type: array
+          items:
+            $ref: "#/components/schemas/TupleReservedPlacePassenger"
+
+    BookingPatchRequest:
+      type: object
+      required:
+        - bookingId
+        - status
+      properties:
+        bookingId:
+          type: string
+          format: uuid
+        status:
+          # $ref: "#/components/schemas/BookingState"
+          type: string
+          example: "CONFIRMED"
+
+    BookingPatchResponse:
+      type: object
+      required:
+        - bookingId
+      properties:
+        bookingId:
+          type: string
+          format: uuid
+        state:
+          $ref: "#/components/schemas/BookingStatus"
+        accommodationType:
+          $ref: "#/components/schemas/AccommodationType"
+        reservedPlaces:
+          type: array
+          items:
+            $ref: "#/components/schemas/TupleReservedPlacePassenger"
+
+    BookingStatus:
+      type: string
+      enum:
+        - PREBOOKED
+        - CONFIRMED
+        - FULFILLED
+        - CANCELLED
+        - REFUNDED
+        - EXCHANGE_ONGOING
+        - ERROR
 
     ReservedPlaceLeg:
       type: object
@@ -1472,3 +2118,41 @@ components:
           items:
             $ref: "#/components/schemas/PlaceProperty"
 
+    #### Common elements start
+    ## Referenced by distributor as well as allocator part
+
+    Link:
+      type: object
+      description: >-
+        The underlying system may provide additional links pointing on further
+        information (such as HTML download links, web sites or extended APIs).
+        Mechanism to add flexible extensions specific to an underlying system.
+      properties:
+        contentTypes:
+          type: array
+          example: '["application/json", "application/pdf"]'
+          description: Possible content types of the resource.
+          items:
+            type: string
+        href:
+          type: string
+          format: uri
+          description: URL to the linked resource (no parameters needed).
+          example: "https://www.brussels.info/train-stations/"
+        type:
+          type: string
+          example: GET
+          description: HTTP method to call the action
+        rel:
+          type: string
+          example: Get Map
+          description: Relation of this link to the current entity.
+        version:
+          type: integer
+          format: int32
+          example: 1
+          description: Version of the current relation.
+      required:
+        - contentTypes
+        - href
+        - rel

@@ -54,14 +54,7 @@ paths:
           content:
             "application/json":
               schema:
-                type: object
-                properties:
-                  warnings:
-                    $ref: "#/components/schemas/WarningCollection"
-                  vehicles:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/Vehicle"
+                $ref: "#/components/schemas/VehicleResponse"
         "400":
           $ref: "#/components/responses/BadRequestResponse"
         "401":
@@ -114,7 +107,7 @@ paths:
           content:
             "application/json":
               schema:
-                $ref: "#/components/schemas/VehicleResponse"  
+                $ref: "#/components/schemas/ProductDefinitionResponse"  
         "400":
           $ref: "#/components/responses/BadRequestResponse"
         "401":
@@ -306,7 +299,7 @@ components:
         products:
           type: array
           items:
-            "$ref": "#/components/schemas/ProductDefinition"
+            "$ref": "#/components/schemas/Vehicle"
 
     Vehicle:
       type: object
@@ -347,7 +340,18 @@ components:
 
     ## start of products
 
+    ProductDefinitionResponse:
+      type: object
+      properties:
+        warnings:
+          $ref: "#/components/schemas/WarningCollection"
+        products:
+          type: array
+          items:
+            "$ref": "#/components/schemas/Vehicle"
+
     # Length of all strings should be define as we want / need to store them in a database.
+
     ProductDefinition:
       type: object
       description: >-

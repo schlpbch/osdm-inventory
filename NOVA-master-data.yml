@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: NOVA Master Data API
-  version: 1.0.0-rc4
+  version: 1.0.0-rc5
   description: >-
     NOVA Master Data API to access inventory information.
   contact:
@@ -56,8 +56,8 @@ paths:
               schema:
                 type: object
                 properties:
-                  warning:
-                    $ref: "#/components/schemas/WarningMessageList"
+                  warnings:
+                    $ref: "#/components/schemas/WarningCollection"
                   vehicles:
                     type: array
                     items:
@@ -80,7 +80,7 @@ paths:
   /inventory/productDefinitions:
     get:
       summary: returns a list of products hosted in the inventory
-      operationId: getProducts
+      operationId: getProductDefinitions
       tags:
         - master data
       parameters:
@@ -114,14 +114,7 @@ paths:
           content:
             "application/json":
               schema:
-                type: object
-                properties:
-                  warnings:
-                    $ref: "#/components/schemas/WarningMessageList"
-                  products:
-                    type: array
-                    items:
-                      "$ref": "#/components/schemas/ProductDefinition"
+                $ref: "#/components/schemas/VehicleResponse"  
         "400":
           $ref: "#/components/responses/BadRequestResponse"
         "401":
@@ -213,23 +206,27 @@ components:
             $ref: "#/components/schemas/Problem"
 
   schemas:
-    WarningMessageList:
+    WarningCollection:
       type: array
+      description: >-
+        List of warnings.
       items:
-        type: object
-        properties:
-          code:
-            type: string
-          text:
-            type: string
-          elementList:
-            type: array
-            items:
-              $ref: "#/components/schemas/Resource"
-        description: >-
-          This element can be used to pass non-blocking information or events,
-          such as a price difference with the initially offered price at booking time.
+        $ref: "#/components/schemas/Warning"
 
+    Warning:
+      type: object
+      description: >-
+        This element can be used to pass non-blocking information or events,
+        such as a price difference with the initially offered price at booking time.
+      properties:
+        code:
+          type: string
+        text:
+          type: string
+        elementList:
+          type: array
+          items:
+            $ref: "#/components/schemas/Resource"
     Resource:
       type: object
       description: used to represent a non-specified resource in the API.
@@ -300,6 +297,16 @@ components:
             An absolute URI that identifies the specific occurrence of the problem.
 
     # begin of vehicle
+
+    VehicleResponse:
+      type: object
+      properties:
+        warnings:
+          $ref: "#/components/schemas/WarningCollection"
+        products:
+          type: array
+          items:
+            "$ref": "#/components/schemas/ProductDefinition"
 
     Vehicle:
       type: object
@@ -416,6 +423,11 @@ components:
           description: >-
             Defines whether the product is valid for a specific comfort classes.
           $ref: "#/components/schemas/ComfortClass"
+        tariff:
+          type: string
+          description: >-
+            Mapping to Tariff 42 of IRS-90918-3 (Hermes/Hosa). Helps the H2O converter in mapping
+            offers to a requested tariff. See legacyReservationParameter.tariff in OSDM offline.
         isTrainBound:
           type: boolean
           default: false

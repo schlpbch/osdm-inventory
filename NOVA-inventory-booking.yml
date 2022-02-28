@@ -1,32 +1,31 @@
 openapi: 3.0.3
 info:
   title: NOVA Inventory Booking API
-  version: 1.0.0-rc7
+  version: 1.0.0-rc8
   description: >-
-    NOVA Inventory API to book places in a inventory
+    NOVA Inventory API to book places in a inventory.
   contact:
     name: Andreas Schlapbach
     email: andreas.schlapbach@sbb.ch
 
 tags:
-  - name: availabilities
+  - name: place availabilities
     description: >-
-      availability of vehicle
+      place availability of vehicle
   - name: bookings
     description: >-
       bookings of vehicle
 
 paths:
-  /availabilities:
+  /place-availabilities:
     post:
       tags:
-        - availabilities
+        - place availabilities
       summary: returns availability of a vehicle
       description: >-
         Returns availability. The availability can be filtered using place properties or service levels.
       operationId: getAvailabilities
       parameters:
-        # - $ref: "#/components/parameters/authorization"
         - $ref: "#/components/parameters/traceParent"
         - $ref: "#/components/parameters/traceState"
       requestBody:
@@ -34,7 +33,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/AvailabilityRequest"
+              $ref: "#/components/schemas/PlaceAvailabilityRequest"
       responses:
         "200":
           description: the requested place
@@ -48,14 +47,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - availabilities
-                properties:
-                  warning:
-                    $ref: "#/components/schemas/WarningMessageList"
-                  tripAvailabilities:
-                    $ref: "#/components/schemas/TripAvailability"
+                $ref: "#/components/schemas/PlaceAvailabilityResponse"
         "400":
           $ref: "#/components/responses/BadRequestResponse"
         "401":
@@ -265,22 +257,29 @@ components:
             $ref: "#/components/schemas/Problem"
 
   schemas:
-    WarningMessageList:
+    WarningCollection:
       type: array
+      description: >-
+        List of warnings.
       items:
-        type: object
-        properties:
-          code:
-            type: string
-          text:
-            type: string
-          elementList:
-            type: array
-            items:
-              $ref: "#/components/schemas/Resource"
-        description: >-
-          This element can be used to pass non-blocking information or events,
-          such as a price difference with the initially offered price at booking time.
+        $ref: "#/components/schemas/Warning"
+
+    Warning:
+      type: object
+      description: >-
+        This element can be used to pass non-blocking information or events,
+        such as a price difference with the initially offered price at booking time.
+      required:
+        - code
+      properties:
+        code:
+          type: string
+        text:
+          type: string
+        elementList:
+          type: array
+          items:
+            $ref: "#/components/schemas/Resource"
 
     Resource:
       type: object
@@ -353,7 +352,7 @@ components:
 
     ## end of product schema
 
-    AvailabilityRequest:
+    PlaceAvailabilityRequest:
       type: object
       required:
         - tripSpecifications
@@ -370,10 +369,19 @@ components:
         embeddedParts:
           type: string
           enum:
-            - LEG_AVAILABILITIES
-            - OFFERS
+            - AVAILABILITIES_ONLY
             - ALL
           default: ALL
+
+    PlaceAvailabilityResponse:
+      type: object
+      required:
+        - availabilities
+      properties:
+        warnings:
+          $ref: "#/components/schemas/WarningCollection"
+        tripAvailabilities:
+          $ref: "#/components/schemas/TripAvailability"
 
     TripAvailability:
       type: object
@@ -394,14 +402,14 @@ components:
       description: Availability per leg for a given trip.
       required:
         - legId
-        - reservationAvailabilities
+        - placeAvailabilities
       properties:
         legId:
           type: string
-        reservationAvailabilities:
+        placeAvailabilities:
           type: array
           items:
-            $ref: "#/components/schemas/ReservationAvailability"
+            $ref: "#/components/schemas/PlaceAvailability"
         reservationOffers:
           type: array
           items:
@@ -413,7 +421,6 @@ components:
         - id
         - productCode
         - price
-        - fulfillmentTypes
         - placeAvailabilityId
       properties:
         id:
@@ -427,7 +434,7 @@ components:
         price:
           type: object
           $ref: "#/components/schemas/Price"
-        fulfillmentTypes:
+        availableFulfillmentTypes:
           type: array
           items:
             $ref: "#/components/schemas/FulfillmentType"
@@ -552,11 +559,11 @@ components:
     PersonDetail:
       type: object
       description: >-
-        Personal information potentially needed at booking step. The main purpose is
-        being able to inform the customer of delays or disruptions.
-        PersonDetails providing personal information only information required in the booking.
-        It is not allowed to send personal information not required in the booking reply.
-        It is not allowed to send these personal data already in the booking request.
+        Personal information potentially needed at booking step. To support privacy by design,
+        it is not permitted to send personal information not required to create a valid booking.
+      required:
+        - firstName
+        - lastName
       properties:
         preferredLanguage:
           type: string
@@ -570,7 +577,9 @@ components:
         eMail:
           type: string
         phoneNumber:
-          description: Preferably a mobile phone number
+          description: >-
+            Preferably a mobile phone number, to be contacted in case changes to the booking ocuur, e.g.,
+            in case of interruptions.
           type: string
         address:
           description: address of the traveller. Can be relevant for some pass holders
@@ -782,6 +791,66 @@ components:
 
     ##
 
+    Trip: ## OJP # Reduced scope
+      type: object
+      description: >-
+        A complete trip from origin to destination. Provided by OJP.
+      required:
+        - id # EXT replaces tripId, fix to OJP submitted, see https://github.com/VDVde/OJP/issues/179
+        - duration
+        - startTime
+        - endTime
+        - transfers
+        - legs # EXT replaces tripLegs, fix to OJP submitted, see https://github.com/VDVde/OJP/issues/179
+      properties:
+        id:
+          description: >-
+            Id of this trip for referencing purposes. Unique within trip response.
+          type: string
+        duration:
+          description: Overall duration of the trip
+          type: string
+          example: "PT20M"
+        origin:
+          description: >-
+            Specifies the origin situation from where the user wants to start.
+          $ref: "#/components/schemas/PlaceRef" # EXT no support for array
+        destination:
+          description: >-
+            Specifies the destination situation where the user is heading to.
+          $ref: "#/components/schemas/PlaceRef" # EXT no support for array
+        startTime:
+          description: Departure time at origin.
+          type: string
+          format: date-time
+        endTime:
+          description: Arrival time at destination
+          type: string
+          format: date-time
+        transfers:
+          description: Number of interchanges
+          type: number
+          format: integer
+          minimum: 0
+        distance:
+          description: >-
+            Distance in meters over the the complete trip, i.e., including transfer legs.
+          type: number
+          format: integer
+          minimum: 0
+        legs:
+          description: Legs ot the trip
+          type: array
+          items:
+            $ref: "#/components/schemas/TripLeg"
+          minItems: 1
+        # operatingDays: ## Out of scope
+        #  $ref: "#/components/schemas/OperatingDays"
+        # situationFullRef: ## Out of scope
+        #   $ref: "#/components/schemas/SituationFullRef"
+        status: # EXT replaces tripLegs, fix to OJP submitted, see https://github.com/VDVde/OJP/issues/182
+          $ref: "#/components/schemas/TripStatus"
+
     TripSpecification:
       type: object
       description: >-
@@ -801,6 +870,50 @@ components:
             $ref: "#/components/schemas/TripLegSpecification"
           minItems: 1
 
+    TripStatus: ## OJP
+      type: object
+      description: >-
+        Parameters which describe the current status of a trip. Provided by OJP.
+      properties:
+        unplanned:
+          description: Whether this trip is an additional one that has not been planned.
+          type: boolean
+          default: false
+        canceled:
+          description: Whether this trip is cancelled and will not be run.
+          type: boolean
+          default: false
+        deviation:
+          description: Whether this trip deviates from the planned service pattern.
+          type: boolean
+          default: false
+        delayed:
+          description: Whether this trip is delayed.
+          type: boolean
+          default: false
+        infeasible:
+          description: Whether this trip cannot be used, due to operational delays and impossible transfers.
+          type: boolean
+          default: false
+
+    TripLeg: ## OJP  # Reduced scope
+      type: object
+      description: >-
+        A single stage of a trip that is made without change of MODE or service (ie: between each interchange).
+        Provided by OJP.
+      required:
+        - id ## EXT replaces legId, fix to OJP submitted, see https://github.com/VDVde/OJP/issues/181
+      properties:
+        id:
+          description: Id of this trip leg. Unique within trip result. A seqId is a leg id.
+          type: string
+        timedLeg:
+          $ref: "#/components/schemas/TimedLeg"
+        transferLeg:
+          $ref: "#/components/schemas/TransferLeg"
+        continuousLeg:
+          $ref: "#/components/schemas/ContinuousLeg"
+
     TripLegSpecification:
       type: object
       description: >-
@@ -819,6 +932,39 @@ components:
           $ref: "#/components/schemas/TransferLeg"
         # continuousLeg:
         #   $ref: "#/components/schemas/ContinuousLeg"
+
+    TimedLeg: ## OJP # Reduced scope
+      type: object
+      description: >-
+        A leg which is bound to a timetabled schedule. Corresponds to a ride. Provided by OJP.
+      required:
+        - alight # EXT renamed timedLeg
+        - board # EXT renamed boardLeg
+        - service
+      properties:
+        board:
+          $ref: "#/components/schemas/LegBoard"
+        intermediates:
+          type: array
+          items:
+            $ref: "#/components/schemas/LegIntermediate"
+        alight:
+          $ref: "#/components/schemas/LegAlight"
+        service:
+          $ref: "#/components/schemas/DatedJourney"
+        # legAttribute:  # Out of scope
+        #   type: array
+        #   items:
+        #     $ref: "#/components/schemas/LegAttribute"
+        # operatingDays:  # Out of scope
+        #  $ref: "#/components/schemas/OperatingDays"
+        # legTrack:  # Out of scope
+        #   type: array
+        #   items:
+        #     $ref: "#/components/schemas/LegTrack"
+        duration: # EXT add attribute for consistency
+          type: string
+          format: duration
 
     TimedLegSpecification:
       type: object
@@ -840,7 +986,212 @@ components:
         service:
           $ref: "#/components/schemas/DatedJourney"
 
-    LegBoardSpecification:
+    TransferLeg: ## OJP # Reduced scope
+      type: object
+      description: >-
+        A leg which links other legs of a trip where a transfer between different places is required. 
+        Provided by OJP.
+      required:
+        - start # EXT renamed legStart
+        - end # EXT renamed legEnd
+      properties:
+        transferMode:
+          $ref: "#/components/schemas/TransferMode"
+        start:
+          description: Stop/Station where boarding is done
+          $ref: "#/components/schemas/PlaceRef"
+        end:
+          description: Stop/Station to alight
+          $ref: "#/components/schemas/PlaceRef"
+        timeWindowStart: # Inlined from TimeWindow
+          description: Time at which window begins.
+          type: string
+          format: date-time
+        timeWindowEnd: # Inlined from TimeWindow
+          description: Time at which window ends.
+          type: string
+          format: date-time
+        duration:
+          description: Overall duration of this interchange.
+          type: string
+          format: duration
+          example: "PT20M"
+        # walkDuration:  # Out of scope
+        #   description: Walk time as part of the overall interchange duration.
+        #   type: string
+        #   format: duration
+        #   example: "PT20M"
+        # bufferTime:  # Out of scope
+        #   description: Buffer time as part of the overall interchange duration. Buffer times, f.e. check in/out times, sometimes are mandatory for using certain services as f.e. airplanes, ferries or highspeed trains.
+        #   type: string
+        #   format: duration
+        #   example: "0SM"
+        # legDescription:  # Out of scope
+        #   type: string
+        # length:  # Out of scope
+        #   type: number
+        #   minimum: 0
+        # attribute:  # Out of scope
+        #   $ref: "#/components/schemas/GeneralAttribute"
+        # pathGuidance:  # Out of scope
+        #   $ref: "#/components/schemas/PathGuidance"
+        # situationFullRef:  # Out of scope
+        #   $ref: "#/components/schemas/SituationFullRef"
+
+    ContinuousLeg: ## OJP # Reduced scope
+      type: object
+      description: >-
+        A leg of a journey that is not bound to a timetable. Provided by OJP.
+      required:
+        - start
+        - end
+        - service
+      properties:
+        start:
+          description: Stop/Station where boarding is done
+          $ref: "#/components/schemas/Place"
+        end:
+          description: Stop/Station to alight
+          $ref: "#/components/schemas/Place"
+        service:
+          $ref: "#/components/schemas/ContinuousService"
+        timeWindowStart: # Inlined from TimeWindow
+          description: Time at which window begins.
+          type: string
+          format: date-time
+        timeWindowEnd: # Inlined from TimeWindow
+          description: Time at which window ends.
+          type: string
+          format: date-time
+        duration:
+          description: >-
+            Duration of this leg according to user preferences like walk speed.
+          type: string
+          format: duration
+          example: "1800S"
+        # legDescription:  # Out of scope
+        #   type: string
+        # length:  # Out of scope
+        #   type: number
+        #   minimum: 0
+        # pathGuidance:  # Out of scope
+        #   $ref: "#/components/schemas/PathGuidance"
+        # situationFullRef:  # Out of scope
+        #   $ref: "#/components/schemas/SituationFullRef"
+
+    ContinuousService: ## OJP
+      type: object
+      description: >-
+        A vehicle movement on a continuous, non-timetabled service.
+        Service of this leg. May be "walk" in most cases, but also cycling or taxi etc.
+        Provided by OJP.
+      required:
+        - operatingDayRef
+        - journeyRef
+        - mode
+        - publishedServiceName
+        - originText
+        - destinationText
+      properties:
+        continuousMode:
+          $ref: "#/components/schemas/ContinuousMode"
+        individualMode:
+          $ref: "#/components/schemas/IndividualMode"
+        operatingDayRef:
+          $ref: "#/components/schemas/OperationDayRef"
+        journeyRef:
+          $ref: "#/components/schemas/JourneyRef"
+        mode: # Ask Stefan
+          type: string
+          example: "Ask Stefan"
+        publishedServiceName:
+          type: string
+          example: "Circle Line"
+        originText:
+          type: string
+        destinationText:
+          type: string
+
+    ContinuousMode: ## OJP
+      type: string
+      description: >-
+        Types of modes that run at any time without a timetable. Provided by OJP.
+
+      enum:
+        - WALK
+        - DEMAND_RESPONSIVE
+        - REPLACEMENT_SERVICE
+
+    IndividualMode: ## OJP
+      type: string
+      description: >-
+        Modes which an individual powers themselves (such as walk, cycle). Provided by OJP.
+
+      x-extensible-enum:
+        - WALK
+        - CYCLE
+        - TAXI
+        - SELF_DRIVE_CAR
+        - OTHERS_DRIVE_CAR
+        - MOTORCYCLE
+        - TRUCK
+        - SCOOTER
+        - RidE_POOL_CAR
+        - CAR_SHARING
+        - CYCLE_SHARING
+        - SCOOTER_SHARING
+      default: WALK
+
+    TransferMode: ## OJP
+      type: string
+      description: >-
+        Modes dedicated to perform transfers. Provided by OJP.
+
+      x-extensible-enum:
+        - WALK
+        - PARK_AND_RidE
+        - BIKE_AND_RidE
+        - CAR_HIRE
+        - BIKE_HIRE
+        - PROTECTED_CONNECTION
+        - GUARANTEED_CONNECTION
+        - REMAIN_IN_VEHICLE
+        - CHANGE_WITHIN_VEHICLE
+        - CHECK_IN
+        - CHECK_OUT
+      default: WALK
+
+    StopCallStatus: ## OJP
+      type: object
+      description: >-
+        Status properties for the vehicle call at this stop. Provided by OJP.
+      properties:
+        order:
+          description: Sequence number of this stop in the service pattern of the journey.
+          type: integer
+          minimum: 1
+        requestStop:
+          description: The vehicle journey calls at this stop only on demand.
+          type: boolean
+          default: false
+        unplannedStop:
+          description: This stop has not been planned by the planning department.
+          type: boolean
+          default: false
+        notServicedStop:
+          description: The vehicle will not call at this stop despite earlier planning.
+          type: boolean
+          default: false
+        noBoardingAtStop:
+          description: Boarding will not be allowed at this stop of this journey.
+          type: boolean
+          default: false
+        noAlightingAtStop:
+          description: Alighting will not be allowed at this stop of this journey.
+          type: boolean
+          default: false
+
+    LegBoard: ## OJP
       type: object
       description: >-
         Describes the the situation at a stop or station at which the passenger boards a Leg
@@ -848,17 +1199,52 @@ components:
       #allOf:
       required:
         - stopPlaceRef ## EXT stopPlaceRef instead of stopPointRef
+        - stopPlaceName ## EXT stopPlaceName instead of stopPointRef
         - serviceDeparture
       properties:
         stopPlaceRef:
           $ref: "#/components/schemas/StopPlaceRef" ## EXT stopPlaceRef instead of stopPointRef
+        stopPlaceName:
+          type: string
+          example: Luzern
+        plannedQuay:
+          description: >-
+            Name of the bay where to board/alight from the vehicle. According to 
+            planned timetable.
+          type: string
+          example: "3"
+        estimatedQuay:
+          description: >-
+            Name of the bay where to board the vehicle. As to the latest realtime status.
+          type: string
+          example: "8"
         serviceDeparture: # EXT directly inline service time
           description: >-
             Describes the departure situation at this leg board stop point (group of attributes
             of timetabled passing time, estimated passing time, observed passing time).
           $ref: "#/components/schemas/ServiceTime"
+        status:
+          $ref: "#/components/schemas/StopCallStatus"
 
-    LegIntermediateSpecification:
+    LegBoardSpecification:
+      type: object
+      description: Minimal leg board specification.
+      required:
+        - stopPlaceRef ## EXT stopPlaceRef instead of stopPointRef
+        - serviceDeparture
+      properties:
+        stopPlaceRef:
+          $ref: "#/components/schemas/StopPlaceRef" ## EXT stopPlaceRef instead of stopPointRef
+        stopPlaceName:
+          type: string
+          example: Luzern
+        serviceDeparture:
+          description: >-
+            Describes the departure situation at this leg board stop point (group of attributes
+            of timetabled passing time, estimated passing time, observed passing time).
+          $ref: "#/components/schemas/ServiceTime"
+
+    LegIntermediate: ## OJP
       type: object
       description: >-
         Describes the situation at a stop or station that lies between the LegBoard and 
@@ -866,11 +1252,26 @@ components:
       #allOf:
       required:
         - stopPlaceRef ## EXT stopPlaceRef instead of stopPointRef
+        - stopPlaceName ## EXT stopPlaceName instead of stopPointName
         - serviceArrival
         - serviceDeparture
       properties:
         stopPlaceRef:
           $ref: "#/components/schemas/StopPlaceRef" ## EXT stopPlaceRef instead of stopPointRef
+        stopPlaceName: ## EXT stopPlaceName instead of stopPointName
+          type: string
+          example: Luzern
+        plannedQuay:
+          description: >-
+            Name of the bay where to board/alight from the vehicle. According to 
+            planned timetable.
+          type: string
+          example: "3"
+        estimatedQuay:
+          description: >-
+            Name of the bay where to board the vehicle. As to the latest realtime status.
+          type: string
+          example: "8"
         serviceArrival: # EXT directly inline service time
           description: >-
             Describes the arrival situation at this leg board stop point (group of attributes
@@ -881,8 +1282,34 @@ components:
             Describes the departure situation at this leg board stop point (group of attributes
             of timetabled passing time, estimated passing time, observed passing time).
           $ref: "#/components/schemas/ServiceTime"
+        status:
+          $ref: "#/components/schemas/StopCallStatus"
 
-    LegAlightSpecification:
+    LegIntermediateSpecification:
+      type: object
+      description: Minimal leg intermediate specification.
+      required:
+        - stopPlaceRef ## EXT stopPlaceRef instead of stopPointRef
+        - serviceArrival
+        - serviceDeparture
+      properties:
+        stopPlaceRef:
+          $ref: "#/components/schemas/StopPlaceRef" ## EXT stopPlaceRef instead of stopPointRef
+        stopPlaceName:
+          type: string
+          example: Luzern
+        serviceArrival:
+          description: >-
+            Describes the arrival situation at this leg board stop point (group of attributes
+            of timetabled passing time, estimated passing time, observed passing time).
+          $ref: "#/components/schemas/ServiceTime"
+        serviceDeparture:
+          description: >-
+            Describes the departure situation at this leg board stop point (group of attributes
+            of timetabled passing time, estimated passing time, observed passing time).
+          $ref: "#/components/schemas/ServiceTime"
+
+    LegAlight: ## OJP
       type: object
       description: >-
         Describes the situation at a stop or station at which the passenger alights from a Leg 
@@ -890,15 +1317,67 @@ components:
       #allOf:
       required:
         - stopPlaceRef ## EXT stopPlaceRef instead of stopPointRef
+        - stopPlaceName ## EXT stopPlaceName instead of stopPointName
         - serviceArrival
       properties:
         stopPlaceRef:
           $ref: "#/components/schemas/StopPlaceRef" ## EXT stopPlaceRef instead of stopPointRef
+        stopPlaceName:
+          type: string
+          example: Luzern
+        plannedQuay:
+          description: >-
+            Name of the bay where to board/alight from the vehicle. According to 
+            planned timetable.
+          type: string
+          example: "3"
+        estimatedQuay:
+          description: >-
+            Name of the bay where to board the vehicle. As to the latest realtime status.
+          type: string
+          example: "8"
         serviceArrival: # EXT directly inline service time
           description: >-
             Describes the arrival situation at this leg board stop point (group of attributes
             of timetabled passing time, estimated passing time, observed passing time).
           $ref: "#/components/schemas/ServiceTime"
+        status:
+          $ref: "#/components/schemas/StopCallStatus"
+
+    LegAlightSpecification:
+      type: object
+      description: Minimal leg alight specification
+      required:
+        - stopPlaceRef ## EXT stopPlaceRef instead of stopPointRef
+        - serviceArrival
+      properties:
+        stopPlaceRef:
+          $ref: "#/components/schemas/StopPlaceRef" ## EXT stopPlaceRef instead of stopPointRef
+        stopPlaceName:
+          type: string
+          example: Luzern
+        serviceArrival:
+          description: >-
+            Describes the arrival situation at this leg board stop point (group of attributes
+            of timetabled passing time, estimated passing time, observed passing time).
+          $ref: "#/components/schemas/ServiceTime"
+
+    ServiceTime: ## OJP
+      type: object
+      description: >-
+        Contains at least scheduled time, but can contain real time and estimated times. Provided by OJP.
+      required:
+        - timetabledTime
+      properties:
+        timetabledTime:
+          type: string
+          format: date-time
+        estimatedTime:
+          type: string
+          format: date-time
+        observedTime:
+          type: string
+          format: date-time
 
     DatedJourney: ## OJP # Reduced scope
       type: object
@@ -966,23 +1445,6 @@ components:
               - "urn:uic:rics:1185:11"
               - "urn:uic:rics:1185:72"
               - "urn:uic:rics:1185:48"
-
-    ServiceTime: ## OJP
-      type: object
-      description: >-
-        Contains at least scheduled time, but can contain real time and estimated times. Provided by OJP.
-      required:
-        - timetabledTime
-      properties:
-        timetabledTime:
-          type: string
-          format: date-time
-        estimatedTime:
-          type: string
-          format: date-time
-        observedTime:
-          type: string
-          format: date-time
 
     Mode: ## OJP
       type: object
@@ -1052,19 +1514,252 @@ components:
         productCategoryRef:
           $ref: "#/components/schemas/ProductCategoryRef"
 
+    Place: ## OJP # Reduced scope
+      type: object
+      description: >-
+        A geographic place of any type which may be specified as the origin or destination of a trip. Provided by OJP.
+      # allOf:
+      #- oneOf:
+      #  - $ref: "#/components/schemas/AddressStructure"
+      #  - $ref: "#/components/schemas/PointOfInterest"
+      #  - $ref: "#/components/schemas/StopPlace"
+      #  - $ref: "#/components/schemas/StopPointStructure"  # Out of scope
+      #  - $ref: "#/components/schemas/TopographicPlaceStructure"  # Out of scope
+      #- $ref: "#/components/schemas/GeoPosition"
+      required:
+        - id
+        # - name  ## EXT
+        # - geoCoordinate  ## EXT
+      properties:
+        id:
+          type: string
+          description: >-
+            id  defining the place. The code is provided as URN, relative URNs are allowed with base path urn:uic:stn "0850000"
+          example: "urn:uic:stn:8500000"
+        name:
+          type: string
+          example: Zürich HB
+        address:
+          $ref: "#/components/schemas/Address"
+        pointOfInterest:
+          $ref: "#/components/schemas/PointOfInterest"
+        stopPlace:
+          $ref: "#/components/schemas/StopPlace"
+        # stopPoint:
+        #  - $ref: "#/components/schemas/StopPointStructure"  # Out of scope
+        # topographicPlace:
+        #  - $ref: "#/components/schemas/TopographicPlaceStructure"  # Out of scope
+        connectionPoint: # EXT OSDM extension for virtual border points
+          $ref: "#/components/schemas/FareConnectionPoint"
+        geoCoordinate:
+          $ref: "#/components/schemas/GeoPosition"
+        #  attribute:   # Out of scope
+        #   $ref: "#/components/schemas/GeneralAttribute"
+        #  extension:   # Out of scope
+        #   $ref: "#/components/schemas/Extension"
+        link:
+          $ref: "#/components/schemas/Link"
+
+    Address: ## OJP # Reduced scope
+      type: object
+      description: >-
+        A descriptive data associated with a place that can be used to describe the unique geographical context of a
+        place for the purposes of identifying it. may be refined as either a road address, a postal address or both.
+        Provided by OJP.
+      # allOf:
+      required:
+        - code # EXT code instead of addressCode, see https://github.com/VDVde/OJP/issues/183
+        - name # EXT name instead of addressName, see https://github.com/VDVde/OJP/issues/183
+      properties:
+        code:
+          description: id of the address
+          type: string
+          example: NL:1916200000022621
+        # privateCode:  # Out of scope
+        #   description: Code of this address in private/foreign/proprietary coding schemes.
+        #   $ref: "#/components/schemas/PrivateCode"
+        name:
+          description: Name or description of address for use in passenger information.
+          type: string
+          example: Oude Trambaan 7, 2265CA Leidschendam, Nederland
+        # nameSuffix:  # Out of scope
+        #   description: House number of the address. If none is given, either a crossing street can be given, or the whole street is meant.
+        #   type: string
+        # - $ref: "#/components/schemas/AddressDetail"
+        countryName:
+          description: Country of the address.
+          type: string
+          example: The Netherlands
+        countryCode:
+          description: ISO country code (2 alpha), relative URNs with base urn:iso:std:iso:3166 are recommended
+          type: string
+          example: DE
+        postCode:
+          description: Postal code of the address.
+          type: string
+          example: 2265CA
+        city: # EXT
+          description: City name
+          type: string
+          example: Leidschendam
+        topographicPlaceName:
+          description: >-
+            TopographicPlace name of the address. If set it should at least contain the city name.
+          type: string
+          example: Leidschendam
+        # topographicPlaceRef:  # Out of scope
+        #   description: If at least one is set, only place objects within the given localities are allowed.If at least one is set, only place objects within the given localities are allowed.Reference to a TopographicPlace
+        #   $ref: "#/components/schemas/TopographicPlaceRef"
+        street:
+          description: Street name of the address.
+          type: string
+          example: Oude Trambaan
+        houseNumber:
+          description: House number of the address. If none is given, either a crossing street can be given, or the whole street is meant.
+          type: string
+          example: 7
+        # crossRoad:  # Out of scope
+        #   description: Crossing. This can be used to be more specific without using house numbers.
+        #   type: string
+
+    PointOfInterest: ## OJP # Reduced scope
+      type: object
+      description: >-
+        A type of place to or through which passengers may wish to navigate as part of
+        their journey and which is modelled in detail by journey planners. Provided by OJP.
+      required:
+        - code # EXT code instead of pointOfInterestCode, see https://github.com/VDVde/OJP/issues/183
+        - name # EXT name instead of pointOfInterestName, see https://github.com/VDVde/OJP/issues/183
+      properties:
+        code:
+          description: id of the Point of Interest.
+          type: string
+        name:
+          description: Name or description of point of interest for use in passenger information.
+          type: string
+          example: Park Rozenrust
+
+    PointOfInterestCategory: ## OJP
+      type: object
+      description: >-
+        A categorisation of points of interest in respect of the activities undertaken at them 
+        (defined by key-value-pairs). Provided by OJP.
+      # oneOf:
+      #  required:
+      #   - pointOfInterestClassification  #EXT no longer mandatory
+      properties:
+        osmTags:
+          description: Open Street Map tag structure (key-value)
+          type: array
+          items:
+            $ref: "#/components/schemas/OsmTag"
+        #    required:
+        #      - osmTag
+        #  - type: object
+        #    properties:
+        pointOfInterestClassifications:
+          description: >-
+            Classification of the POI (when it is not from OSM). The codification of the 
+            classification Id may include de codification source (for example 
+            "IGN:[classificationCode]")
+          type: array
+          items:
+            type: string
+
+    OsmTag: ## OJP
+      type: object
+      description: >-
+        Structure of an Open Street Map tag. Provided by OJP.
+      properties:
+        tag:
+          type: string
+          description: Name of Open Street Map tag (amenity, leisure, tourism, bike, ...)
+          example: name
+        value:
+          type: string
+          description: Value for Open Street Map tag (charging_station, hostel, yes, ...)
+          example: Rozenrust
+      required:
+        - tag
+        - value
+
+    StopPlace: ## OJP # Reduced scope
+      type: object
+      description: >-
+        A place extended by accessibility limitation properties and some attributes of the associated equipment, 
+        comprising one or more places where vehicles may stop and where passengers may board or leave vehicles 
+        or prepare their trip, and which will usually have one or more wellknown names. Provided by OJP.
+      #allOf:
+      required:
+        - ref # EXT ref instead of stopPlaceRef
+        - name # EXT name instead of stopPlaceName
+      properties:
+        ref:
+          description: Reference to a Stop Place
+          $ref: "#/components/schemas/StopPlaceRef"
+        name:
+          description: Name of this stop place for use in passenger information.
+          type: string
+          example: Zürich HB
+
+    PlaceRef: ### OJP
+      oneOf:
+        - $ref: "#/components/schemas/StopPlaceRef"
+        - $ref: "#/components/schemas/TopographicPlaceRef"
+        - $ref: "#/components/schemas/PointOfInterestRef"
+        - $ref: "#/components/schemas/AddressRef"
+        - $ref: "#/components/schemas/FareConnectionPointRef"
+        - $ref: "#/components/schemas/GeoPosition"
+      required:
+        - name
+      properties:
+        name:
+          type: string
+
     StopPlaceRef: ## OJP
+      type: string
       description: >-
         Reference to a Stop Place using URNs to define code.
         For UIC see UIC MERITS/TAP-TSI station codes. Provided by OJP.
+      example:
+        - "urn:uic:stn:8503000"
+        - "urn:uic:stn:8400058"
+        - "urn:uic:stn:8727100"
+
+    PointOfInterestRef: ## OJP
       type: string
-      example: "urn:uic:stn:8503000"
+      description: Reference to a Point of Interest
+
+    TopographicPlaceRef: ## OJP
+      type: string
+      description: Reference to a Topographic Place
+
+    AddressRef: ## OJP
+      type: string
+      description: Reference to an Address
+
+    FareConnectionPointRef: ## OSDM extension
+      type: string
+      description: Reference to a Fare Connection Point
 
     ProductCategoryRef: ## OJP
       description: >-
         Reference to a product category. Product categories should be defined once and used uniformly in all channels 
         (e.g. NeTEx, SIRI, OJP). Provided by OJP.
       type: string
-      example: "urn:uic:sbc:76"
+      example:
+        - "urn:uic:sbc:76"
+        - "urn:uic:sbc:43"
+
+    OperationDayRef: ## OJP
+      type: string
+      description: Reference to an operating day. Provided by OJP.
+      example: "OperatingDay:12345"
+
+    JourneyRef: ## OJP
+      type: string
+      description: Reference to a journey. Provided by OJP.
+      example: "ServiceJourney:1"
 
     ##
 
@@ -1084,7 +1779,7 @@ components:
 
         See UIC 918.1, Tarif Code (42), type of coach (37-1) and Compartment with Special Features (37-2).
       type: string
-      enum:
+      x-extensible-enum:
         # Seat Preference
         - WINDOW
         - MIDDLE
@@ -1115,7 +1810,7 @@ components:
         - PANORAMA
         - FRONT_VIEW
 
-    ReservationAvailability:
+    PlaceAvailability:
       type: object
       required:
         - id
@@ -1123,25 +1818,12 @@ components:
         - passengerIds
         - accommodationType
         - accommodationSubType
-        - placeProperties
       properties:
         id:
           type: string
           example: "id-1"
         inventory:
           $ref: "#/components/schemas/Inventory"
-        productCode:
-          type: string
-          description: >-
-            The product code expressed in the provider system (could be a
-            mapping from an even lower-level provider).
-          example: PT00AD
-        price:
-          $ref: "#/components/schemas/Price"
-        fulfillmentTypes:
-          type: array
-          items:
-            $ref: "#/components/schemas/FulfillmentType"
         comfortClass:
           $ref: "#/components/schemas/ComfortClass"
         accommodationType:
@@ -1157,7 +1839,7 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/PlaceProperty"
-        passengerReferences:
+        passengerIds:
           type: array
           items:
             type: string
@@ -1274,635 +1956,6 @@ components:
         - WHEELCHAIR_WITH_SEAT
       example: OPEN_SPACE
 
-    Trip: ## OJP # Reduced scope
-      type: object
-      description: >-
-        A complete trip from origin to destination. Provided by OJP.
-      required:
-        - id # EXT replaces tripId, fix to OJP submitted, see https://github.com/VDVde/OJP/issues/179
-        - duration
-        - startTime
-        - endTime
-        - transfers
-        - legs # EXT replaces tripLegs, fix to OJP submitted, see https://github.com/VDVde/OJP/issues/179
-      properties:
-        id:
-          description: >-
-            Id of this trip for referencing purposes. Unique within trip response.
-          type: string
-        duration:
-          description: Overall duration of the trip
-          type: string
-          example: "PT20M"
-        origin:
-          description: >-
-            Specifies the origin situation from where the user wants to start.
-          $ref: "#/components/schemas/Place" # EXT no support for array
-        destination:
-          description: >-
-            Specifies the destination situation where the user is heading to.
-          $ref: "#/components/schemas/Place" # EXT no support for array
-        startTime:
-          description: Departure time at origin.
-          type: string
-          format: date-time
-        endTime:
-          description: Arrival time at destination
-          type: string
-          format: date-time
-        transfers:
-          description: Number of interchanges
-          type: number
-          format: integer
-          minimum: 0
-        distance:
-          description: Trip distance
-          type: number
-          format: integer
-          minimum: 0
-        legs:
-          description: Legs ot the trip
-          type: array
-          items:
-            $ref: "#/components/schemas/TripLeg"
-          minItems: 1
-        # operatingDays: ## Out of scope
-        #  $ref: "#/components/schemas/OperatingDays"
-        # situationFullRef: ## Out of scope
-        #   $ref: "#/components/schemas/SituationFullRef"
-        status: # EXT replaces tripLegs, fix to OJP submitted, see https://github.com/VDVde/OJP/issues/182
-          $ref: "#/components/schemas/TripStatus"
-
-    TripStatus: ## OJP
-      type: object
-      description: >-
-        Parameters which describe the current status of a trip. Provided by OJP.
-      properties:
-        unplanned:
-          description: Whether this trip is an additional one that has not been planned.
-          type: boolean
-          default: false
-        canceled:
-          description: Whether this trip is cancelled and will not be run.
-          type: boolean
-          default: false
-        deviation:
-          description: Whether this trip deviates from the planned service pattern.
-          type: boolean
-          default: false
-        delayed:
-          description: Whether this trip is delayed.
-          type: boolean
-          default: false
-        infeasible:
-          description: Whether this trip cannot be used, due to operational delays and impossible transfers.
-          type: boolean
-          default: false
-
-    TripLeg: ## OJP  # Reduced scope
-      type: object
-      description: >-
-        A single stage of a trip that is made without change of MODE or service (ie: between each interchange).
-        Provided by OJP.
-      required:
-        - id ## EXT replaces legId, fix to OJP submitted, see https://github.com/VDVde/OJP/issues/181
-      properties:
-        id:
-          description: Id of this trip leg. Unique within trip result. A seqId is a leg id.
-          type: string
-        timedLeg:
-          $ref: "#/components/schemas/TimedLeg"
-        transferLeg:
-          $ref: "#/components/schemas/TransferLeg"
-        continuousLeg:
-          $ref: "#/components/schemas/ContinuousLeg"
-
-    TimedLeg: ## OJP # Reduced scope
-      type: object
-      description: >-
-        A leg which is bound to a timetabled schedule. Corresponds to a ride. Provided by OJP.
-      required:
-        - alight # EXT renamed timedLeg
-        - board # EXT renamed boardLeg
-        - service
-      properties:
-        board:
-          $ref: "#/components/schemas/LegBoard"
-        intermediates:
-          type: array
-          items:
-            $ref: "#/components/schemas/LegIntermediate"
-        alight:
-          $ref: "#/components/schemas/LegAlight"
-        service:
-          $ref: "#/components/schemas/DatedJourney"
-        # legAttribute:  # Out of scope
-        #   type: array
-        #   items:
-        #     $ref: "#/components/schemas/LegAttribute"
-        # operatingDays:  # Out of scope
-        #  $ref: "#/components/schemas/OperatingDays"
-        # legTrack:  # Out of scope
-        #   type: array
-        #   items:
-        #     $ref: "#/components/schemas/LegTrack"
-        duration: # EXT add attribute for consistency
-          type: string
-          format: duration
-
-    StopCallStatus: ## OJP
-      type: object
-      description: >-
-        Status properties for the vehicle call at this stop. Provided by OJP.
-      properties:
-        order:
-          description: Sequence number of this stop in the service pattern of the journey.
-          type: integer
-          minimum: 1
-        requestStop:
-          description: The vehicle journey calls at this stop only on demand.
-          type: boolean
-          default: false
-        unplannedStop:
-          description: This stop has not been planned by the planning department.
-          type: boolean
-          default: false
-        notServicedStop:
-          description: The vehicle will not call at this stop despite earlier planning.
-          type: boolean
-          default: false
-        noBoardingAtStop:
-          description: Boarding will not be allowed at this stop of this journey.
-          type: boolean
-          default: false
-        noAlightingAtStop:
-          description: Alighting will not be allowed at this stop of this journey.
-          type: boolean
-          default: false
-
-    LegBoard: ## OJP
-      type: object
-      description: >-
-        Describes the the situation at a stop or station at which the passenger boards a Leg
-        of a trip including time-related information. Provided by OJP.
-      #allOf:
-      required:
-        - stopPlaceRef ## EXT stopPlaceRef instead of stopPointRef
-        - serviceDeparture
-        - stopPointName
-      properties:
-        stopPlaceRef:
-          $ref: "#/components/schemas/StopPlaceRef" ## EXT stopPlaceRef instead of stopPointRef
-        stopPointName: # Out of scope
-          type: string
-          example: Luzern
-        plannedQuay:
-          description: >-
-            Name of the bay where to board/alight from the vehicle. According to 
-            planned timetable.
-          type: string
-          example: "3"
-        estimatedQuay:
-          description: >-
-            Name of the bay where to board the vehicle. As to the latest realtime status.
-          type: string
-          example: "8"
-        serviceDeparture: # EXT directly inline service time
-          description: >-
-            Describes the departure situation at this leg board stop point (group of attributes
-            of timetabled passing time, estimated passing time, observed passing time).
-          $ref: "#/components/schemas/ServiceTime"
-        status:
-          $ref: "#/components/schemas/StopCallStatus"
-
-    LegIntermediate: ## OJP
-      type: object
-      description: >-
-        Describes the situation at a stop or station that lies between the LegBoard and 
-        LegAlight stop or station including time-related information. Provided by OJP.
-      #allOf:
-      required:
-        - stopPlaceRef ## EXT stopPlaceRef instead of stopPointRef
-        - serviceArrival
-        - serviceDeparture
-        - stopPointName
-      properties:
-        stopPlaceRef:
-          $ref: "#/components/schemas/StopPlaceRef" ## EXT stopPlaceRef instead of stopPointRef
-        stopPointName:
-          type: string
-          example: Luzern
-        plannedQuay:
-          description: >-
-            Name of the bay where to board/alight from the vehicle. According to 
-            planned timetable.
-          type: string
-          example: "3"
-        estimatedQuay:
-          description: >-
-            Name of the bay where to board the vehicle. As to the latest realtime status.
-          type: string
-          example: "8"
-        serviceArrival: # EXT directly inline service time
-          description: >-
-            Describes the arrival situation at this leg board stop point (group of attributes
-            of timetabled passing time, estimated passing time, observed passing time).
-          $ref: "#/components/schemas/ServiceTime"
-        serviceDeparture: # EXT directly inline service time
-          description: >-
-            Describes the departure situation at this leg board stop point (group of attributes
-            of timetabled passing time, estimated passing time, observed passing time).
-          $ref: "#/components/schemas/ServiceTime"
-        status:
-          $ref: "#/components/schemas/StopCallStatus"
-
-    LegAlight: ## OJP
-      type: object
-      description: >-
-        Describes the situation at a stop or station at which the passenger alights from a Leg 
-        of a trip including time-related information. Provided by OJP.
-      #allOf:
-      required:
-        - stopPlaceRef ## EXT stopPlaceRef instead of stopPointRef
-        - serviceArrival
-        - stopPointName
-      properties:
-        stopPlaceRef:
-          $ref: "#/components/schemas/StopPlaceRef" ## EXT stopPlaceRef instead of stopPointRef
-        stopPointName:
-          type: string
-          example: Luzern
-        plannedQuay:
-          description: >-
-            Name of the bay where to board/alight from the vehicle. According to 
-            planned timetable.
-          type: string
-          example: "3"
-        estimatedQuay:
-          description: >-
-            Name of the bay where to board the vehicle. As to the latest realtime status.
-          type: string
-          example: "8"
-        serviceArrival: # EXT directly inline service time
-          description: >-
-            Describes the arrival situation at this leg board stop point (group of attributes
-            of timetabled passing time, estimated passing time, observed passing time).
-          $ref: "#/components/schemas/ServiceTime"
-        status:
-          $ref: "#/components/schemas/StopCallStatus"
-
-    TransferLeg: ## OJP # Reduced scope
-      type: object
-      description: >-
-        A leg which links other legs of a trip where a transfer between different places is required. 
-        Provided by OJP.
-      required:
-        - start # EXT renamed legStart
-        - end # EXT renamed legEnd
-      properties:
-        transferMode:
-          $ref: "#/components/schemas/TransferMode"
-        start:
-          description: Stop/Station where boarding is done
-          $ref: "#/components/schemas/Place"
-        end:
-          description: Stop/Station to alight
-          $ref: "#/components/schemas/Place"
-        timeWindowStart: # Inlined from TimeWindow
-          description: Time at which window begins.
-          type: string
-          format: date-time
-        timeWindowEnd: # Inlined from TimeWindow
-          description: Time at which window ends.
-          type: string
-          format: date-time
-        duration:
-          description: Overall duration of this interchange.
-          type: string
-          format: duration
-          example: "PT20M"
-
-    TransferMode: ## OJP
-      description: >-
-        Modes dedicated to perform transfers. Provided by OJP.
-      type: string
-      x-extensible-enum:
-        - WALK
-        - PARK_AND_RIDE
-        - BIKE_AND_RIDE
-        - CAR_HIRE
-        - BIKE_HIRE
-        - PROTECTED_CONNECTION
-        - GUARANTEED_CONNECTION
-        - REMAIN_IN_VEHICLE
-        - CHANGE_WITHIN_VEHICLE
-        - CHECK_IN
-        - CHECK_OUT
-      default: WALK
-
-    ContinuousLeg: ## OJP # Reduced scope
-      type: object
-      description: >-
-        A leg of a journey that is not bound to a timetable. Provided by OJP.
-      required:
-        - start
-        - end
-        - service
-      properties:
-        start:
-          description: Stop/Station where boarding is done
-          $ref: "#/components/schemas/Place"
-        end:
-          description: Stop/Station to alight
-          $ref: "#/components/schemas/Place"
-        service:
-          $ref: "#/components/schemas/ContinuousService"
-        timeWindowStart: # Inlined from TimeWindow
-          description: Time at which window begins.
-          type: string
-          format: date-time
-        timeWindowEnd: # Inlined from TimeWindow
-          description: Time at which window ends.
-          type: string
-          format: date-time
-        duration:
-          description: >-
-            Duration of this leg according to user preferences like walk speed.
-          type: string
-          format: duration
-          example: "1800S"
-
-    ContinuousService: ## OJP
-      type: object
-      description: >-
-        A vehicle movement on a continuous, non-timetabled service.
-        Service of this leg. May be "walk" in most cases, but also cycling or taxi etc.
-        Provided by OJP.
-      required:
-        - operatingDayRef
-        - journeyRef
-        - mode
-        - publishedServiceName
-        - originText
-        - destinationText
-      properties:
-        continuousMode:
-          $ref: "#/components/schemas/ContinuousMode"
-        individualMode:
-          $ref: "#/components/schemas/IndividualMode"
-        operatingDayRef:
-          $ref: "#/components/schemas/OperationDayRef"
-        journeyRef:
-          $ref: "#/components/schemas/JourneyRef"
-        mode: # Ask Stefan
-          type: string
-          example: "Ask Stefan"
-        publishedServiceName:
-          type: string
-          example: "Circle Line"
-        originText:
-          type: string
-        destinationText:
-          type: string
-
-    ContinuousMode: ## OJP
-      description: >-
-        Types of modes that run at any time without a timetable. Provided by OJP.
-      type: string
-      enum:
-        - WALK
-        - DEMAND_RESPONSIVE
-        - REPLACEMENT_SERVICE
-
-    IndividualMode: ## OJP
-      description: >-
-        Modes which an individual powers themselves (such as walk, cycle). Provided by OJP.
-      type: string
-      x-extensible-enum:
-        - WALK
-        - CYCLE
-        - TAXI
-        - SELF_DRIVE_CAR
-        - OTHERS_DRIVE_CAR
-        - MOTORCYCLE
-        - TRUCK
-        - SCOOTER
-        - RIDE_POOL_CAR
-        - CAR_SHARING
-        - CYCLE_SHARING
-        - SCOOTER_SHARING
-      default: WALK
-
-    OperationDayRef: ## OJP
-      description: >-
-        Reference to an operating day. Provided by OJP.
-      type: string
-      example: "OperatingDay:12345"
-
-    JourneyRef: ## OJP
-      description: >-
-        Reference to a journey. Provided by OJP.
-      type: string
-      example: "ServiceJourney:1"
-
-    Place: ## OJP # Reduced scope
-      description: >-
-        A geographic place of any type which may be specified as the origin or destination of a trip. Provided by OJP.
-      # allOf:
-      #- oneOf:
-      #  - $ref: "#/components/schemas/AddressStructure"
-      #  - $ref: "#/components/schemas/PointOfInterest"
-      #  - $ref: "#/components/schemas/StopPlace"
-      #  - $ref: "#/components/schemas/StopPointStructure"  # Out of scope
-      #  - $ref: "#/components/schemas/TopographicPlaceStructure"  # Out of scope
-      #- $ref: "#/components/schemas/GeoPosition"
-      type: object
-      required:
-        - id
-        # - name  ## EXT
-        # - geoCoordinate  ## EXT
-      properties:
-        id:
-          type: string
-          description: >-
-            id uniquely defining the place. The code is provided as URN, relative URNs are allowed with base path urn:uic:stn "0850000"
-          example: "urn:uic:stn:8500000"
-        name:
-          type: string
-          example: Zürich HB
-        address:
-          $ref: "#/components/schemas/Address"
-        pointOfInterest:
-          $ref: "#/components/schemas/PointOfInterest"
-        stopPlace:
-          $ref: "#/components/schemas/StopPlace"
-        # stopPoint:
-        #  - $ref: "#/components/schemas/StopPointStructure"  # Out of scope
-        # topographicPlace:
-        #  - $ref: "#/components/schemas/TopographicPlaceStructure"  # Out of scope
-        connectionPoint: # EXT OSDM extension for virtual border points
-          $ref: "#/components/schemas/FareConnectionPoint"
-        geoCoordinate:
-          $ref: "#/components/schemas/GeoPosition"
-        link:
-          $ref: "#/components/schemas/Link"
-
-    Address: ## OJP # Reduced scope
-      description: >-
-        A descriptive data associated with a place that can be used to describe the unique geographical context of a
-        place for the purposes of identifying it. may be refined as either a road address, a postal address or both.
-        Provided by OJP.
-      # allOf:
-      type: object
-      required:
-        - addressCode
-        - addressName
-      properties:
-        addressCode:
-          description: ID of this address.
-          type: string
-          example: NL:1916200000022621
-        # privateCode:  # Out of scope
-        #   description: Code of this address in private/foreign/proprietary coding schemes.
-        #   $ref: "#/components/schemas/PrivateCode"
-        addressName:
-          description: Name or description of address for use in passenger information.
-          type: string
-          example: Oude Trambaan 7, 2265CA Leidschendam, Nederland
-        # nameSuffix:  # Out of scope
-        #   description: House number of the address. If none is given, either a crossing street can be given, or the whole street is meant.
-        #   type: string
-        # - $ref: "#/components/schemas/AddressDetail"
-        countryName:
-          description: Country of the address.
-          type: string
-          example: The Netherlands
-        countryCode:
-          description: ISO country code (2 alpha), relative URNs with base urn:iso:std:iso:3166 are recommended
-          type: string
-          example: DE
-        postCode:
-          description: Postal code of the address.
-          type: string
-          example: 2265CA
-        city: # EXT
-          description: City name
-          type: string
-          example: Leidschendam
-        topographicPlaceName:
-          description: >-
-            TopographicPlace name of the address. If set it should at least contain the city name.
-          type: string
-          example: Leidschendam
-        # topographicPlaceRef:  # Out of scope
-        #   description: If at least one is set, only place objects within the given localities are allowed.If at least one is set, only place objects within the given localities are allowed.Reference to a TopographicPlace
-        #   $ref: "#/components/schemas/TopographicPlaceRef"
-        street:
-          description: Street name of the address.
-          type: string
-          example: Oude Trambaan
-        houseNumber:
-          description: House number of the address. If none is given, either a crossing street can be given, or the whole street is meant.
-          type: string
-          example: 7
-        # crossRoad:  # Out of scope
-        #   description: Crossing. This can be used to be more specific without using house numbers.
-        #   type: string
-
-    PointOfInterest: ## OJP # Reduced scope
-      description: >-
-        A type of place to or through which passengers may wish to navigate as part of
-        their journey and which is modelled in detail by journey planners. Provided by OJP.
-      type: object
-      required:
-        - pointOfInterestCode
-        - pointOfInterestName
-      properties:
-        pointOfInterestCode:
-          description: ID of this Point of Interest.
-          type: string
-        pointOfInterestName:
-          description: Name or description of point of interest for use in passenger information.
-          type: string
-          example: Park Rozenrust
-
-    FareConnectionPoint:
-      type: object
-      description: >-
-        Connection point connecting two fare regimes. The connection is possible between stations of the two provided station sets.
-        A legacy border point code (id) might be provided as an additional code within the stations (code list BORDER_POINT provided in URN). 
-        In case the connection point is a real station this station is indicated. 
-        In case the connection point is between stations for each side of the border real stations must be provided. 
-        Multiple sets of station can be provided in the rare case that the connection point connects more than two station (A-B and A-C).
-        Multiple stations within a set at one side of the border might be provided in case of changes (new stations build near the border). 
-
-        Providing the UIC code for the station is mandatory.
-      properties:
-        name:
-          type: string
-        stationSets:
-          type: array
-          items:
-            type: array
-            items:
-              $ref: "#/components/schemas/StopPlaceRef" # EXT Changed from StopPoint
-      required:
-        - stationSets
-
-    GeoPosition: ## OJP # Reduced scope
-      type: object
-      description: >-
-        WGS84 coordinates position. Provided by OJP.
-      properties:
-        longitude:
-          $ref: "#/components/schemas/Longitude"
-        latitude:
-          $ref: "#/components/schemas/Latitude"
-        # altitude:   # Out of scope
-        #   $ref: "#/components/schemas/Altitude"
-        # precision:   # Out of scope
-        #   $ref: "#/components/schemas/Precision"
-      required:
-        - latitude
-        - longitude
-
-    Longitude: ## OJP
-      description: >-
-        Longitude from Greenwich Meridian. -180 (West) to +180 (East). Decimal degrees. eg 2.356. Provided by OJP.
-      type: number
-      format: float
-      example: 8.54021
-      minimum: -180.0
-      maximum: 180.0
-
-    Latitude: ## OJP
-      description: >-
-        Latitude from equator. -90 (South) to +90 (North). Decimal degrees. eg 56.356. Provided by OJP.
-      type: number
-      format: float
-      example: 47.37818
-      minimum: -90.0
-      maximum: 90.0
-
-    StopPlace: ## OJP # Reduced scope
-      type: object
-      description: >-
-        A place extended by accessibility limitation properties and some attributes of the associated equipment, 
-        comprising one or more places where vehicles may stop and where passengers may board or leave vehicles 
-        or prepare their trip, and which will usually have one or more wellknown names. Provided by OJP.
-      #allOf:
-      required:
-        - stopPlaceRef
-        - stopPlaceName
-      properties:
-        stopPlaceRef:
-          description: Reference to a Stop Place
-          $ref: "#/components/schemas/StopPlaceRef"
-        stopPlaceName:
-          description: Name of this stop place for use in passenger information.
-          type: string
-          example: Zürich HB
-
     ## Booking
 
     BookingRequest:
@@ -1931,6 +1984,8 @@ components:
       type: object
       description: >-
         Booker information needed at offering step.
+      required:
+        - id
       properties:
         id:
           type: string
@@ -2061,18 +2116,6 @@ components:
       type: object
       required:
         - bookingId
-      properties:
-        bookingId:
-          type: string
-          format: uuid
-        state:
-          $ref: "#/components/schemas/BookingStatus"
-        accommodationType:
-          $ref: "#/components/schemas/AccommodationType"
-        reservedPlaces:
-          type: array
-          items:
-            $ref: "#/components/schemas/TupleReservedPlacePassenger"
 
     BookingStatus:
       type: string
@@ -2120,6 +2163,62 @@ components:
 
     #### Common elements start
     ## Referenced by distributor as well as allocator part
+
+    FareConnectionPoint:
+      type: object
+      description: >-
+        Connection point connecting two fare regimes. The connection is possible between stations of the two provided station sets.
+        A legacy border point code (id) might be provided as an additional code within the stations (code list BORDER_POINT provided in URN). 
+        In case the connection point is a real station this station is indicated. 
+        In case the connection point is between stations for each side of the border real stations must be provided. 
+        Multiple sets of station can be provided in the rare case that the connection point connects more than two station (A-B and A-C).
+        Multiple stations within a set at one side of the border might be provided in case of changes (new stations build near the border). 
+
+        Providing the UIC code for the station is mandatory.
+      required:
+        - stationSets
+      properties:
+        name:
+          type: string
+        stationSets:
+          type: array
+          items:
+            type: array
+            items:
+              $ref: "#/components/schemas/StopPlaceRef" # EXT Changed from StopPoint
+
+    GeoPosition:
+      type: object
+      description: >-
+        WGS84 coordinates position. Provided by OJP.
+      required:
+        - latitude
+        - longitude
+      properties:
+        longitude:
+          $ref: "#/components/schemas/Longitude"
+        latitude:
+          $ref: "#/components/schemas/Latitude"
+        # altitude:   # Out of scope
+        #   $ref: "#/components/schemas/Altitude"
+        # precision:   # Out of scope
+        #   $ref: "#/components/schemas/Precision"
+
+    Longitude:
+      type: number
+      description: Longitude from Greenwich Meridian. -180 (West) to +180 (East). Decimal degrees. eg 2.356.
+      format: float
+      example: 8.54021
+      minimum: -180.0
+      maximum: 180.0
+
+    Latitude:
+      type: number
+      description: Latitude from equator. -90 (South) to +90 (North). Decimal degrees. eg 56.356.
+      format: float
+      example: 47.37818
+      minimum: -90.0
+      maximum: 90.0
 
     Link:
       type: object

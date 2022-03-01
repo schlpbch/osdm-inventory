@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: NOVA Master Data API
-  version: 1.0.0-rc5
+  version: 1.0.0-rc6
   description: >-
     NOVA Master Data API to access inventory information.
   contact:
@@ -296,7 +296,7 @@ components:
       properties:
         warnings:
           $ref: "#/components/schemas/WarningCollection"
-        products:
+        vehicles:
           type: array
           items:
             "$ref": "#/components/schemas/Vehicle"
@@ -345,10 +345,10 @@ components:
       properties:
         warnings:
           $ref: "#/components/schemas/WarningCollection"
-        products:
+        productDefinitions:
           type: array
           items:
-            "$ref": "#/components/schemas/Vehicle"
+            "$ref": "#/components/schemas/ProductDefinition"
 
     # Length of all strings should be define as we want / need to store them in a database.
 

@@ -369,7 +369,7 @@ components:
         embeddedParts:
           type: string
           enum:
-            - AVAILABILITIES_ONLY
+            - PLACE_AVAILABILITIES
             - ALL
           default: ALL
 
@@ -391,20 +391,6 @@ components:
         - tripId
       properties:
         tripId:
-          type: string
-        legAvailabilities:
-          type: array
-          items:
-            $ref: "#/components/schemas/TripLegAvailability"
-
-    TripLegAvailability:
-      type: object
-      description: Availability per leg for a given trip.
-      required:
-        - legId
-        - placeAvailabilities
-      properties:
-        legId:
           type: string
         placeAvailabilities:
           type: array
@@ -1814,14 +1800,23 @@ components:
       type: object
       required:
         - id
-        - inventory
+        - legId
         - passengerIds
+        - inventory
         - accommodationType
         - accommodationSubType
       properties:
         id:
           type: string
           example: "id-1"
+        legId:
+          type: string
+          example: "leg-1"
+        passengerIds:
+          type: array
+          items:
+            type: string
+            example: "passenger-1"
         inventory:
           $ref: "#/components/schemas/Inventory"
         comfortClass:
@@ -1839,11 +1834,6 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/PlaceProperty"
-        passengerIds:
-          type: array
-          items:
-            type: string
-            example: "passenger-1"
 
     Inventory:
       type: string

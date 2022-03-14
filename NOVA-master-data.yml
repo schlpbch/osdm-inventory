@@ -1,4 +1,5 @@
 openapi: 3.0.3
+
 info:
   title: NOVA Master Data API
   version: 1.0.0
@@ -7,6 +8,10 @@ info:
   contact:
     name: Andreas Schlapbach
     email: andreas.schlapbach@sbb.ch
+
+servers:
+  - description: NOVA Master Data API
+    url: https://developers.sbb.ch/nova-master-data
 
 tags:
   - name: master data
@@ -17,10 +22,10 @@ tags:
 paths:
   /inventory/vehicles:
     get:
-      summary: returns a list of vehicles hosted in the inventory
-      operationId: getVehicles
       tags:
         - master data
+      summary: returns a list of vehicles hosted in the inventory
+      operationId: getVehicles
       parameters:
         - $ref: "#/components/parameters/traceParent"
         - $ref: "#/components/parameters/traceState"
@@ -107,7 +112,7 @@ paths:
           content:
             "application/json":
               schema:
-                $ref: "#/components/schemas/ProductDefinitionResponse"  
+                $ref: "#/components/schemas/ProductDefinitionResponse"
         "400":
           $ref: "#/components/responses/BadRequestResponse"
         "401":
@@ -201,6 +206,7 @@ components:
   schemas:
     WarningCollection:
       type: array
+      additionalProperties: false
       description: >-
         List of warnings.
       items:
@@ -208,6 +214,7 @@ components:
 
     Warning:
       type: object
+      additionalProperties: false
       description: >-
         This element can be used to pass non-blocking information or events,
         such as a price difference with the initially offered price at booking time. 
@@ -241,6 +248,7 @@ components:
 
     Problem:
       type: object
+      additionalProperties: false
       description: >-
         Problem Details for HTTP APIs (RFC 7807) defines a "problem detail" as a way
         to carry machine-readable details of errors in a HTTP response to avoid
@@ -288,6 +296,7 @@ components:
 
     VehicleResponse:
       type: object
+      additionalProperties: false
       properties:
         warnings:
           $ref: "#/components/schemas/WarningCollection"
@@ -298,11 +307,12 @@ components:
 
     Vehicle:
       type: object
+      additionalProperties: false
       properties:
         validities:
           type: array
           items:
-            $ref: "#/components/schemas/InventoryItemTemporalValidity"
+            $ref: "#/components/schemas/TemporalValidity"
         id:
           type: integer
           format: int64
@@ -317,9 +327,10 @@ components:
           type: string
           example: urn:sbb:1185:11
 
-    InventoryItemTemporalValidity:
-      description: Defines a validity range for a given item.
+    TemporalValidity:
       type: object
+      additionalProperties: false
+      description: Defines a validity range for a given item.
       required:
         - validFrom
         - validUntil
@@ -337,6 +348,7 @@ components:
 
     ProductDefinitionResponse:
       type: object
+      additionalProperties: false
       properties:
         warnings:
           $ref: "#/components/schemas/WarningCollection"
@@ -345,10 +357,9 @@ components:
           items:
             "$ref": "#/components/schemas/ProductDefinition"
 
-    # Length of all strings should be define as we want / need to store them in a database.
-
     ProductDefinition:
       type: object
+      additionalProperties: false
       description: >-
         Structured description of the product, its name, comfort and sales / after-sales conditions
       required:
@@ -365,7 +376,7 @@ components:
         validities:
           type: array
           items:
-            $ref: "#/components/schemas/InventoryItemTemporalValidity"
+            $ref: "#/components/schemas/TemporalValidity"
         # Length is required as we need to store it in a database
         id:
           description: unique id of this product on this server.
@@ -381,15 +392,7 @@ components:
             E.g. all "Produktausprägungen" can be part of the same family.
           type: string
         type:
-          description: >-
-            Coarse grained categorization of the product type. Used to determine the type of an
-            Offer (see "OfferPartType").
-          type: string
-          enum:
-            - ADMISSION
-            - RESERVATION
-            - ANCILLARY
-            - FEE
+          $ref: "#/components/schemas/ProductType"
         code:
           type: string
           description: >-
@@ -438,8 +441,20 @@ components:
           items:
             $ref: "#/components/schemas/FulfillmentOption"
 
+    ProductType:
+      type: string
+      description: >-
+        Coarse grained categorization of the product type. Used to determine the type of an
+        Offer (see "OfferPartType").
+      enum:
+        - ADMISSION
+        - RESERVATION
+        - ANCILLARY
+        - FEE
+
     FulfillmentOption:
       type: object
+      additionalProperties: false
       required:
         - type
       description: >-
@@ -454,44 +469,35 @@ components:
 
     Condition:
       type: object
+      additionalProperties: false
       description: >-
         Describes sales and after sales conditions applicable to the product. 
         For a product to be refundable or exchangeable, at least one refund or exchange 
         (respectively) condition must be present.
+      required:
+        - type
+        - descriptions
       properties:
         type:
-          type: string
-          x-extensible-enum:
-            - SALE
-            - FULFILLMENT
-            - EXCHANGE
-            - REFUND
-            - TRAVEL
+          $ref: "#/components/schemas/ConditionType"
         descriptions:
           type: array
           items:
             $ref: "#/components/schemas/Translation"
-        validFrom:
-          type: string
-          format: date-time
-        validUntil:
-          type: string
-          format: date-time
-        afterSalesFee:
-          type: object
-          properties:
-            feePrice:
-              $ref: "#/components/schemas/Price"
-            isAllocatorFee:
-              description: indicates whether the fee belongs to the allocator
-              type: boolean
-              default: false
-      required:
-        - type
-        - descriptions
+
+    ConditionType:
+      type: string
+      x-extensible-enum:
+        - SALE
+        - PLACE_CHANGE
+        - FULFILLMENT
+        - EXCHANGE
+        - REFUND
+        - TRAVEL
 
     Price:
       type: object
+      additionalProperties: false
       required:
         - currency
         - amount
@@ -522,6 +528,7 @@ components:
 
     VAT:
       type: object
+      additionalProperties: false
       required:
         - countryCode
         - amount
@@ -547,14 +554,14 @@ components:
           $ref: "#/components/schemas/VatScope"
 
     VatScope:
-      description: scope where the VAT applies
       type: string
+      description: scope where the VAT applies
       x-extensible-enum:
         - INTERNATIONAL
         - NATIONAL
         - SHORT_DISTANCE
         - LONG_DISTANCE
-        
+
     CountryCode:
       type: string
       description: ISO country code (2 alpha), relative URNs with base urn:iso:std:iso:3166 are recommended
@@ -596,6 +603,7 @@ components:
 
     ServiceClass:
       type: object
+      additionalProperties: false
       description: >-
         Class of service.
       properties:
@@ -616,10 +624,10 @@ components:
         - BASIC
 
     ComfortClass:
+      type: string
       description: >-
         Generic class classification, representing the classic distinction into FIRST and SECOND class.
         Mostly used to harmonize choice and representation across multiple carriers.
-      type: string
       x-extensible-enum:
         - FIRST
         - SECOND
@@ -646,6 +654,7 @@ components:
 
     Translation:
       type: object
+      additionalProperties: false
       properties:
         language:
           type: string

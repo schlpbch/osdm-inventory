@@ -519,8 +519,8 @@ components:
           items:
             type: string
             example:
-              - "S 52"
-              - "B 19"
+              - "52"
+              - "19"
         operatorRefs:
           description: >-
             Reference to transport operators.
@@ -532,7 +532,6 @@ components:
             type: string
             example:
               "urn:uic:rics:1185:000011"
-
         serviceStatus:
           $ref: "#/components/schemas/ServiceStatus"
         situationFullRefs:

@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: NOVA Master Data API
-  version: 1.0.0-rc6
+  version: 1.0.0
   description: >-
     NOVA Master Data API to access inventory information.
   contact:
@@ -210,39 +210,34 @@ components:
       type: object
       description: >-
         This element can be used to pass non-blocking information or events,
-        such as a price difference with the initially offered price at booking time.
+        such as a price difference with the initially offered price at booking time. 
+        It is inspired on the JSon problem structure.
+      required:
+        - code
       properties:
         code:
           type: string
-        text:
-          type: string
-        elementList:
-          type: array
-          items:
-            $ref: "#/components/schemas/Resource"
-    Resource:
-      type: object
-      description: used to represent a non-specified resource in the API.
-      properties:
-        id:
-          type: string
-          description: unique id of this resource on this server.
-        title:
-          type: string
-          example: Bruxelles-Midi
         type:
           type: string
-          enum:
-            - MASTER_DATA
-        href:
+          format: uri
+          description: >-
+            An absolute URI that identifies the warning type. When dereferenced,
+            it SHOULD provide human-readable documentation for the problem type
+            (e.g., using HTML).
+          default: "about:blank"
+          example: "https://example.com/warns/price-updated"
+        detail:
           type: string
-          format: url
-          example: "http://some.provider/location/2345"
-      required:
-        - id
-        - title
-        - type
-        - href
+          description: >-
+            A human readable explanation specific to this occurrence of the
+            warning.
+          example: The price of the given offer part has been updated during the booking operation
+        instance:
+          type: string
+          format: uri
+          description: >-
+            An absolute URI that identifies the specific occurrence of the warning.
+            example: offers/offer1234
 
     Problem:
       type: object
@@ -320,7 +315,7 @@ components:
           example: 565
         operatorRef:
           type: string
-          example: urn:sbb:85:11
+          example: urn:sbb:1185:11
 
     InventoryItemTemporalValidity:
       description: Defines a validity range for a given item.
@@ -497,7 +492,9 @@ components:
 
     Price:
       type: object
-      minProperties: 1
+      required:
+        - currency
+        - amount
       properties:
         currency:
           $ref: "#/components/schemas/Currency"
@@ -508,27 +505,29 @@ components:
         scale:
           description: scale of the amount - the number of positions after the comma
           type: integer
+          format: int32
           default: 2
-        vatDetails:
+        vats:
           type: array
           items:
             $ref: "#/components/schemas/VAT"
-      required:
-        - currency
-        - amount
 
     Currency:
-      description: ISO 4217 currency codes
       type: string
-      example: CHF
+      description: ISO 4217 currency codes
+      example:
+        - CHF
+        - EUR
+        - SEK
 
     VAT:
       type: object
+      required:
+        - countryCode
+        - amount
       properties:
-        country:
-          description: ISO 3166 2A codes
-          type: string
-          example: CH
+        countryCode:
+          $ref: "#/components/schemas/CountryCode"
         amount:
           description: amount in cents
           type: integer
@@ -537,6 +536,7 @@ components:
         scale:
           description: scale of the amount - the number of positions after the comma
           type: integer
+          format: int32
           default: 2
         percentage:
           type: number
@@ -545,9 +545,6 @@ components:
           type: string
         scope:
           $ref: "#/components/schemas/VatScope"
-      required:
-        - country
-        - amount
 
     VatScope:
       description: scope where the VAT applies
@@ -557,6 +554,11 @@ components:
         - NATIONAL
         - SHORT_DISTANCE
         - LONG_DISTANCE
+        
+    CountryCode:
+      type: string
+      description: ISO country code (2 alpha), relative URNs with base urn:iso:std:iso:3166 are recommended
+      example: DE
 
     AccommodationType:
       type: string

@@ -402,7 +402,7 @@ components:
         descriptions:
           type: array
           items:
-            $ref: "#/components/schemas/Translation"
+            $ref: "#/components/schemas/Text"
         conditions:
           type: array
           items:
@@ -483,7 +483,7 @@ components:
         descriptions:
           type: array
           items:
-            $ref: "#/components/schemas/Translation"
+            $ref: "#/components/schemas/Text"
 
     ConditionType:
       type: string
@@ -652,9 +652,32 @@ components:
         - PKPASS
         - TICKETLESS
 
+    Text:
+      type: object
+      description: >-
+        Directly included text in case of online services. Text must be encrypted in
+        UTF-8 format.
+      required:
+        - id
+        - text
+      properties:
+        id:
+          type: string
+        translations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Translation"
+        text:
+          type: string
+        shortText:
+          type: string
+
     Translation:
       type: object
       additionalProperties: false
+      required:
+        - language
+        - text
       properties:
         language:
           type: string
@@ -664,8 +687,6 @@ components:
           type: string
         shortText:
           type: string
-      required:
-        - language
-        - text
+
 
     ## end of product schema

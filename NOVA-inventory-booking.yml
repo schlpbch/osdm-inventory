@@ -172,7 +172,9 @@ components:
         warnings:
           $ref: "#/components/schemas/WarningCollection"
         tripAvailabilities:
-          $ref: "#/components/schemas/TripAvailability"
+          type: array
+          items:
+            $ref: "#/components/schemas/TripAvailability"
 
     TripAvailability:
       type: object

@@ -108,6 +108,51 @@ paths:
         "503":
           description: service unavailable
 
+    patch:
+      tags:
+        - bookings
+      summary: allows updating the fulfillment type of the booking.
+      operationId: confirmBooking
+      parameters:
+        - $ref: "#/components/parameters/acceptLanguage"
+        - $ref: "#/components/parameters/idempotencyKey"
+        - $ref: "#/components/parameters/traceParent"
+        - $ref: "#/components/parameters/traceState"
+        - in: path
+          name: bookingId
+          schema:
+            type: string
+          required: true
+          description: id of the booking to be patched
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookingPatchRequest"
+      responses:
+        "200":
+          description: booking fulfillment type updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestResponse"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Not Found
+        "409":
+          $ref: "#/components/responses/ConflictResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerErrorResponse"
+        "501":
+          description: Not implemented
+        "503":
+          $ref: "#/components/responses/ServiceUnavailableResponse"
+
   /bookings/{bookingId}:
     delete:
       tags:
@@ -163,6 +208,16 @@ components:
       description: >-
         Describes the set of natural languages that are preferred for localized text in the response
         to the request (see RFC2616-sec14.4). Supporting English (en) is a must.
+      schema:
+        type: string
+      required: false
+
+    idempotencyKey:
+      name: Idempotency-Key
+      in: header
+      description: >-
+        The HTTP Idempotency request header field can be used to carry idempotency key in order to make 
+        non-idempotent HTTP methods such as POST or PATCH fault-tolerant.
       schema:
         type: string
       required: false
@@ -1109,8 +1164,8 @@ components:
       required:
         - selectionPerLegs
       properties:
-        purchaser:
-          $ref: "#/components/schemas/Purchaser"
+        # purchaser:
+        #  $ref: "#/components/schemas/Purchaser"
         offers:
           type: array
           items:
@@ -1123,9 +1178,12 @@ components:
       required:
         - id
       properties:
-        id:
+        reservationOfferId:
           type: string
-          description: id of the selected offer or exchangeOffer
+          description: id of the selected reservation offer id
+        # placeAvailabilityId:
+        #  type: string
+        #  description: id of the selected availability id
         optionalReservationIds:
           type: array
           items:
@@ -1486,28 +1544,448 @@ components:
         #   type: array
         #   items:
         #     $ref: "#/components/schemas/Admission"
-        reservationId:
-          type: string
-          description: >-
-            The unique reservation reference in the provider system.
-        ancillaryId:
-          type: string
-          description: >-
-            The unique ancillary reference in the provider system.
-        # reservations:
-        #   type: array
-        #   items:
-        #     $ref: "#/components/schemas/Reservation"
-        # ancillaries:
-        #   type: array
-        #   items:
-        #     $ref: "#/components/schemas/Ancillary"
+        reservations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Reservation"
+        ancillaries:
+          type: array
+          items:
+            $ref: "#/components/schemas/Ancillary"
         # fees:
         #   type: array
         #   items:
         #     $ref: "#/components/schemas/Fee"
       required:
         - id
+
+    Reservation:
+      type: object
+      description: >-
+        Reservation includes the reference to the in the initial offer. 
+        The offer needs to be updated with the selected places before the confirmation
+        which creates the reservation details including the reserved places.
+      required:
+        - id
+        - commonOfferPartAttributes
+        - reservationDetail
+      properties:
+        id:
+          type: string
+        commonOfferPartAttributes:
+          $ref: "#/components/schemas/CommonOfferPartAttributes"
+        reservationDetail:
+          $ref: "#/components/schemas/ReservationDetail"
+        placeSelection:
+          $ref: "#/components/schemas/SelectedPlaceOption"
+        optionality:
+          description: >-
+            INCLUDED: the reservation is included in the offer
+            MANDATORY: the reservation is mandatory for the booking
+            OPTIONAL: the reservation is not included but can be added optionally
+          type: string
+          enum:
+            - INCLUDED
+            - MANDATORY
+            - OPTIONAL
+        ancillaries:
+          type: array
+          items:
+            type: object
+            properties:
+              relationType:
+                type: string
+                enum:
+                  - OPTIONAL
+                  - INCLUDED
+              ancillary:
+                $ref: "#/components/schemas/OfferPartReference"
+        fees:
+          type: array
+          items:
+            $ref: "#/components/schemas/OfferPartReference"
+
+    Ancillary:
+      type: object
+      required:
+        - id
+        - commonOfferPartAttributes
+      properties:
+        id:
+          type: string
+        commonOfferPartAttributes:
+          $ref: "#/components/schemas/CommonOfferPartAttributes"
+        optionality:
+          description: >-
+            INCLUDED: the ancillary is included in the offer but is not mandatory 
+            OPTIONAL: the ancillary is not included but can be optionally added
+          type: string
+          enum:
+            - INCLUDED
+            - OPTIONAL
+        category:
+          type: string
+        fees:
+          type: array
+          items:
+            $ref: "#/components/schemas/OfferPartReference"
+
+    CommonOfferPartAttributes:
+      type: object
+      properties:
+        price:
+          $ref: "#/components/schemas/Price"
+        pricingMode:
+          type: string
+          enum:
+            - COLLECTIVE
+            - INDIVIDUAL
+          default: INDIVIDUAL
+        appliedReductions:
+          type: array
+          items:
+            $ref: "#/components/schemas/CardReference"
+        appliedPromotionCodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/PromotionCode"
+        passengerIds:
+          type: array
+          items:
+            description: Id of the passenger
+            type: string
+        providerBookingReference:
+          type: string
+          description: >-
+            The booking reference of the booking the offer part is in on the provider side.
+        finalProviderBookingReference:
+          type: string
+          description: >-
+            The booking reference of the order the offer part is in on the final provider 
+            side = the provider actually hosting or allocating  the product.
+        availableFulfillmentOptions:
+          type: array
+          items:
+            $ref: "#/components/schemas/FulfillmentOption"
+        validFrom:
+          type: string
+          format: date-time
+          description: Validity of offer towards passenger
+        validUntil:
+          type: string
+          format: date-time
+          description: Validity of offer towards passenger
+        numericAvailability:
+          type: integer
+          format: int32
+          description: >-
+            If supported by the allocator system, this returns the number of remaining available
+            offerparts, i.e. admissions, reservation or ancillaries.
+        refundable:
+          type: string
+          description: >-
+            If set to YES the offerpart is refundable without a fee before the day of departure.
+            NO when not refundable or refundable with 100% fee, WITH_CONDITIONS in all other cases.
+          enum:
+            - YES
+            - NO
+            - WITH_CONDITIONS
+        exchangeable:
+          type: string
+          description: >-
+            If set to YES the offerpart is exchangeable without a fee before the day of departure. 
+            NO when not exchangeable or exchangeable with 100% fee, WITH_CONDITIONS in all other cases.
+          enum:
+            - YES
+            - NO
+        afterSaleConditions:
+          type: array
+          description: Fine grained specification of the after sale condition of the booking.
+          items:
+            $ref: "#/components/schemas/AfterSaleCondition"
+        products:
+          type: array
+          description: >-
+            In offer mode, in almost all cases exactly one product is referenced. Only on some French
+            trips consisting of a TGV and a TER two products need to be used.
+            In fare mode, no product exists as first needs to created from the different fares.
+          items:
+            type: object
+            properties:
+              product:
+                $ref: "#/components/schemas/Product"
+              legIds:
+                description: indices of the legs in the trip given by the provider of the offer
+                type: array
+                items:
+                  type: string
+      required:
+        - price
+        - passengerIds
+        - validFrom
+        - refundable
+        - exchangeable
+
+    PromotionCode:
+      type: object
+      description: >-
+        The promotion code is a token that reduces the price at POST booking time OR
+        Token that reduces the price at POST trip-offer-collection time OR
+        Token to receive offers that are not available without it.
+      properties:
+        code:
+          description: >-
+            The code issued by the issuer
+          type: string
+          example: SPRING_DISCOUNT
+        issuer:
+          description: >-
+            The party that issues the promotion code, in case of a railway it's its RICS code
+          type: string
+
+    ReservationDetail:
+      type: object
+      description: >-
+        Describes the details of the reserved place(s).
+      required:
+        - accommodationType
+        - accommodationSubType
+      properties:
+        accommodationType:
+          $ref: "#/components/schemas/AccommodationType"
+        accommodationSubType:
+          $ref: "#/components/schemas/AccommodationSubType"
+        reservedPlaces:
+          description: >-
+            Reserved places in a confirmed reservation. 
+            Multiple place packs are needed to combined person and bicycle reservations
+          type: array
+          items:
+            $ref: "#/components/schemas/ReservedPlace"
+
+    ReservedPlace:
+      type: object
+      description: >-
+        Selection of places with common properties description element - textual description of the places
+        placeProperties is mandatory for allocator mode, for distributors the textual description is used
+      required:
+        - id
+        - passengerIds
+        - vehicle
+        - coach
+      properties:
+        id:
+          type: string
+        passengerIds:
+          type: array
+          items:
+            description: Id of the passenger
+            type: string
+        vehicle:
+          description: vehicle number (e.g. train number)
+          type: string
+        coach:
+          type: string
+        places:
+          description: descriptive string of the places (e.g. 11-35,51)
+          type: string
+        placeIds:
+          description: list of individual place numbers
+          type: array
+          items:
+            type: string
+        placeProperties:
+          description: place properties to be indicated to the customer
+          type: array
+          items:
+            type: object
+            description: >-
+              Place properties of places in the place pack. Properties without a number refer 
+              to all places.
+            required:
+              - placeProperty
+            properties:
+              placeProperty:
+                $ref: "#/components/schemas/PlaceProperty"
+
+    AfterSaleCondition:
+      type: object
+      properties:
+        condition:
+          $ref: "#/components/schemas/AfterSaleConditionType"
+        validFrom:
+          type: string
+          format: date-time
+        validUntil:
+          type: string
+          format: date-time
+        afterSaleFee:
+          $ref: "#/components/schemas/Price"
+
+    AfterSaleConditionType:
+      type: string
+      x-extensible-enum:
+        - PLACE_CHANGE
+        - EXCHANGE
+        - REFUND  
+
+    Product:
+      type: object
+      description: >-
+        Structured description of the product, its name, comfort and sales / after-sales conditions
+      required:
+        - id
+        - code
+      properties:
+        id:
+          type: string
+          description: id of the product
+        abstract:
+          type: string
+          description: A human-readable description of the product.
+          example: TGV Lyria Loisir 2
+        code:
+          type: string
+          description: >-
+            The product code expressed in the provider system (could be a
+            mapping from an even lower-level provider).
+          example: PT00AD
+        description:
+          type: string
+          description: Textual description of the product.
+          example: Loisir Non-flex Adult Fare
+        conditions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Condition"
+          description: >-
+            Structured description of the sales or after-sales conditions.
+        serviceClass:
+          $ref: "#/components/schemas/ServiceClass"
+        comfortClass:
+          $ref: "#/components/schemas/ComfortClass"
+        isTrainBound:
+          type: boolean
+          default: false
+        isReturnProduct:
+          type: boolean
+          default: false
+        fulfillmentOptions:
+          type: array
+          items:
+            $ref: "#/components/schemas/FulfillmentOption"
+        serviceConstraintText:
+          type: string
+        carrierConstraintText:
+          type: string
+        tariff:
+          type: string
+          description: >-
+            Mapping to Tariff 42 of IRS-90918-3 (Hermes/Hosa). Helps the H2O converter in mapping
+            offers to a requested tariff. See legacyReservationParameter.tariff in OSDM offline.
+        throughTicketTags:
+          type: array
+          items:
+            type: string
+          description: >-
+            List of tags (and their type) that allow identifying sets of offers for which related 
+            contracts can be grouped into one through ticket.
+        combinationTags:
+          type: array
+          items:
+            $ref: "#/components/schemas/CombinationTag"
+        _links:
+          type: array
+          items:
+            $ref: "#/components/schemas/Link"
+
+    ServiceClass:
+      type: object
+      description: Class of service.
+      required:
+        - type
+        - name
+      properties:
+        type:
+          $ref: "#/components/schemas/ServiceClassType"
+        name:
+          type: string
+          description: The name the carrier itself uses to designate this specific service class
+
+    ServiceClassType:
+      type: string
+      description: >-
+        Type of quality level, finer grained than the comfort class.
+      x-extensible-enum:
+        - BEST
+        - HIGH
+        - STANDARD
+        - BASIC
+
+    CombinationTag:
+      type: object
+      description: >-
+        Tag to indicate that some products from a provider can be sold only when in conjunction
+        with product(s) from another provider using the same tag. At least one, not all, 
+        combinationTags must be in common to allow combination. No combinationTags indicate 
+        that there are no combination constraints on the product.
+      properties:
+        id:
+          type: string
+        needsToBeCombined:
+          description: >-
+            If false it means that this product can be sold also when not in conjunction with
+            a product with the same tag. This is needed to propose specific products from one 
+            provider that depend on public ones of another.
+          type: boolean
+          default: false
+
+    Condition:
+      type: object
+      description: >-
+        Describes sales and after sales conditions applicable to the product. 
+        For a product to be refundable or exchangeable, at least one refund or exchange 
+        (respectively) condition must be present.
+      required:
+        - type
+        - description
+      properties:
+        type:
+          $ref: "#/components/schemas/ConditionType"
+        description:
+          type: string
+
+    ConditionType:
+      type: string
+      x-extensible-enum:
+        - SALE
+        - PLACE_CHANGE
+        - FULFILLMENT
+        - EXCHANGE
+        - REFUND
+        - TRAVEL
+
+    BookingPatchRequest:
+      type: object
+      description: >-
+        Allows setting the required fulfillment type, e.g. value paper
+        or e-ticket and preferred fulfillment media. 
+        The latter is optional and relevant in some cases only.
+      required:
+        - exchangeOffers
+      properties:
+        promotionCodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/PromotionCode"
+        requestedFulfillmentType:
+          $ref: "#/components/schemas/FulfillmentType"
+        preferredFulfillmentMedia:
+          $ref: "#/components/schemas/FulfillmentMediaType"
+        exchangeOffers:
+          type: array
+          items:
+            $ref: "#/components/schemas/OfferSelection"
 
     ## Fulfillment
 
@@ -1674,6 +2152,18 @@ components:
             - PNG
             - GIF
             - SVG
+
+    FulfillmentOption:
+      type: object
+      description: >-
+        CIT paper implies printing on value paper which is stock controlled.
+      properties:
+        type:
+          $ref: "#/components/schemas/FulfillmentType"
+        media:
+          type: array
+          items:
+            $ref: "#/components/schemas/FulfillmentMediaType"
 
     #### Common elements start
     ## Referenced by distributor as well as allocator part

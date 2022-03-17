@@ -530,8 +530,7 @@ components:
           type: array
           items:
             type: string
-            example:
-              "urn:uic:rics:1185:000011"
+            example: "urn:uic:rics:1185:000011"
         serviceStatus:
           $ref: "#/components/schemas/ServiceStatus"
         situationFullRefs:
@@ -679,8 +678,7 @@ components:
       description: >-
         Reference to a Stop Place using URNs to define code.
         For UIC see UIC MERITS/TAP-TSI station codes. Provided by OJP.
-      example:
-        "urn:uic:stn:8503000"
+      example: "urn:uic:stn:8503000"
 
     PointOfInterestRef: ## OJP
       type: string
@@ -710,8 +708,7 @@ components:
         Reference to a product category. Product categories should be defined once and used
         uniformly in all channels (e.g. NeTEx, SIRI, OJP). Provided by OJP.
       type: string
-      example:
-        "urn:uic:sbc:76"
+      example: "urn:uic:sbc:76"
 
     OperationDayRef: ## OJP
       type: string
@@ -827,8 +824,7 @@ components:
     Company:
       type: string
       description: RICS company code or compatible ERA company code for rail.
-      example: 
-        "urn:uic:rics:1185"
+      example: "urn:uic:rics:1185"
 
     ## Offer Part
 
@@ -859,9 +855,9 @@ components:
     Flexibility:
       type: string
       x-extensible-enum:
-        - FULLFLEX
-        - SEMIFLEX
-        - NONFLEX
+        - FULL_FLEXIBLE
+        - SEMI_FLEXIBLE
+        - NON_FLEXIBLE
 
     Price:
       type: object

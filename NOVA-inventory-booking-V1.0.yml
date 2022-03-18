@@ -1013,6 +1013,10 @@ components:
         - latitude
         - longitude
       properties:
+        placeRefType:
+          type: string
+          enum:
+            - geoPosition
         longitude:
           $ref: "#/components/schemas/Longitude"
         latitude:

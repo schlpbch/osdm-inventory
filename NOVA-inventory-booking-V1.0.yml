@@ -660,18 +660,20 @@ components:
       default: WALK
 
     PlaceRef: ### OJP
-      oneOf:
+      oneOf: #do we really need a oneOf here, considering all these refs are in the end just a string ?
         - $ref: "#/components/schemas/StopPlaceRef"
         - $ref: "#/components/schemas/TopographicPlaceRef"
         - $ref: "#/components/schemas/PointOfInterestRef"
         - $ref: "#/components/schemas/AddressRef"
-        - $ref: "#/components/schemas/FareConnectionPointRef"
-        - $ref: "#/components/schemas/GeoPosition"
       required:
         - name
       properties:
         name:
           type: string
+        fareConnectionPoint:
+          $ref: "#/components/schemas/FareConnectionPoint"
+        position:
+          $ref: "#/components/schemas/GeoPosition"
 
     StopPlaceRef: ## OJP
       type: string
@@ -941,6 +943,29 @@ components:
       type: string
       description: ISO country code (2 alpha), relative URNs with base urn:iso:std:iso:3166 are recommended
       example: DE
+
+    FareConnectionPoint:
+      type: object
+      description: >-
+        Connection point connecting two fare regimes. The connection is possible between stations of the two provided station sets.
+        A legacy border point code (id) might be provided as an additional code within the stations (code list BORDER_POINT provided in URN). 
+        In case the connection point is a real station this station is indicated. 
+        In case the connection point is between stations for each side of the border real stations must be provided. 
+        Multiple sets of station can be provided in the rare case that the connection point connects more than two station (A-B and A-C).
+        Multiple stations within a set at one side of the border might be provided in case of changes (new stations build near the border). 
+
+        Providing the UIC code for the station is mandatory.
+      required:
+        - stationSets
+      properties:
+        name:
+          type: string
+        stationSets:
+          type: array
+          items:
+            type: array
+            items:
+              $ref: "#/components/schemas/StopPlaceRef" # EXT Changed from StopPoint
 
     GeoPosition:
       type: object

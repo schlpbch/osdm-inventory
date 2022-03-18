@@ -276,12 +276,12 @@ components:
       description: >-
         A minimal trip specification from origin to destination.
       required:
-        - id
+        - externalRef
         - legs # EXT replaces tripLegs, fix to OJP submitted, see https://github.com/VDVde/OJP/issues/179
       properties:
-        id:
+        externalRef:
           description: >-
-            Id of this trip for referencing purposes. Unique within a trip specification.
+            External reference of this trip for referencing purposes. Unique within a trip specification.
           type: string
         legs:
           type: array
@@ -725,16 +725,12 @@ components:
       description: >-
         Minimal specification of a passenger to request offers.
       required:
-        - id
+        - externalRef
         - type
       properties:
-        id:
-          type: string
+        externalRef:
           description: >-
-            Id of the passenger resource in case service to patch a single passenger is provided.
-        externalReference:
-          description: >-
-            A stable reference to passengers from other elements, or from caller system.
+            A stable reference to a passenger from other elements, or from caller system.
             When received in input of a trip-offers-collection request, it must be echoed back in the
             response.
           type: string

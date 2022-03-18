@@ -213,7 +213,6 @@ components:
             mapping from an even lower-level provider).
           example: Reservierungsentgelt
         price:
-          type: object
           $ref: "#/components/schemas/Price"
         availableFulfillmentTypes:
           type: array
@@ -293,13 +292,13 @@ components:
       type: object
       additionalProperties: false
       description: >-
-        A minimal trip leg specification consisting of timed and transfer legs only. 
-        Continuous legs are not yet part of this version of the specification-
+        A minimal trip leg specification.
       required:
-        - id ## EXT replaces legId, fix to OJP submitted, see https://github.com/VDVde/OJP/issues/181
+        - externalRef
       properties:
-        id:
-          description: Id of this trip leg. Unique within trip result. A seqId is a leg id.
+        externalRef:
+          description: >-
+            External reference of this trip leg. Unique within trip result.
           type: string
         timedLeg:
           $ref: "#/components/schemas/TimedLegSpecification"
@@ -314,17 +313,17 @@ components:
       description: >-
         A minimal timed leg specification.
       required:
-        - alight # EXT renamed timedAlight
-        - board # EXT renamed timedBoard
+        - start # EXT legBoard renamed to start
+        - end # EXT legAlight renamed to board
         - service
       properties:
-        board:
+        start:
           $ref: "#/components/schemas/LegBoardSpecification"
         intermediates:
           type: array
           items:
             $ref: "#/components/schemas/LegIntermediateSpecification"
-        alight:
+        end:
           $ref: "#/components/schemas/LegAlightSpecification"
         service:
           $ref: "#/components/schemas/DatedJourney"
@@ -660,43 +659,84 @@ components:
       default: WALK
 
     PlaceRef: ### OJP
-      oneOf: #do we really need a oneOf here, considering all these refs are in the end just a string ?
+      oneOf:
         - $ref: "#/components/schemas/StopPlaceRef"
-        - $ref: "#/components/schemas/TopographicPlaceRef"
         - $ref: "#/components/schemas/PointOfInterestRef"
         - $ref: "#/components/schemas/AddressRef"
-      required:
-        - name
-      properties:
-        name:
-          type: string
-        fareConnectionPoint:
-          $ref: "#/components/schemas/FareConnectionPoint"
-        position:
-          $ref: "#/components/schemas/GeoPosition"
+        - $ref: "#/components/schemas/FareConnectionPointRef"
+        - $ref: "#/components/schemas/GeoPosition"
+      discriminator:
+        propertyName: placeRefType
 
     StopPlaceRef: ## OJP
-      type: string
+      type: object
+      additionalProperties: false
       description: >-
         Reference to a Stop Place using URNs to define code.
         For UIC see UIC MERITS/TAP-TSI station codes. Provided by OJP.
-      example: "urn:uic:stn:8503000"
+      required:
+        - stopPlaceRef
+      properties:
+        placeRefType:
+          type: string
+          enum:
+            - stopPlaceRef
+        stopPlaceRef:
+          type: string
+          example: urn:uic:stn:8503000
+        name:
+          type: string
 
     PointOfInterestRef: ## OJP
-      type: string
-      description: Reference to a Point of Interest
-
-    TopographicPlaceRef: ## OJP
-      type: string
-      description: Reference to a Topographic Place
+      type: object
+      additionalProperties: false
+      description: >-
+        Reference to a Point of Interest. Provided by OJP.
+      required:
+        - pointOfInterestRef
+      properties:
+        placeRefType:
+          type: string
+          enum:
+            - pointOfInterestRef
+        pointOfInterestRef:
+          type: string
+        name:
+          type: string
 
     AddressRef: ## OJP
-      type: string
-      description: Reference to an Address
+      type: object
+      additionalProperties: false
+      description: >-
+        Reference to an Address.
+      required:
+        - addressRef
+      properties:
+        placeRefType:
+          type: string
+          enum:
+            - addressRef
+        addressRef:
+          type: string
+        name:
+          type: string
 
-    FareConnectionPointRef: ## OSDM extension
-      type: string
-      description: Reference to a Fare Connection Point
+    FareConnectionPointRef:
+      type: object
+      additionalProperties: false
+      description: >-
+        Reference to a Fare Connection Point.
+      required:
+        - fareConnectionPoint
+      properties:
+        placeRefType:
+          type: string
+          enum:
+            - fareConnectionPointRef
+        fareConnectionPoint:
+          $ref: "#/components/schemas/FareConnectionPoint"
+        name:
+          type: string  
 
     SituationFullRef: ## OJP
       type: string
@@ -942,6 +982,7 @@ components:
 
     FareConnectionPoint:
       type: object
+      additionalProperties: false
       description: >-
         Connection point connecting two fare regimes. The connection is possible between stations of the two provided station sets.
         A legacy border point code (id) might be provided as an additional code within the stations (code list BORDER_POINT provided in URN). 
